@@ -229,12 +229,159 @@
             color: #86868b;
             font-weight: 400;
         }
+
+        .manage-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .manage-btn {
+            background: transparent;
+            color: #0071e3;
+            border: 2px solid #0071e3;
+            padding: 10px 24px;
+            font-size: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .manage-btn:hover {
+            background: #0071e3;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 18px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #1d1d1f;
+        }
+
+        .modal-input-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #d2d2d7;
+            border-radius: 12px;
+            font-size: 17px;
+            transition: all 0.3s;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #0071e3;
+        }
+
+        .modal-members-list {
+            margin-bottom: 24px;
+        }
+
+        .modal-member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: #f5f5f7;
+            border-radius: 12px;
+        }
+
+        .modal-member-name {
+            font-size: 17px;
+            color: #1d1d1f;
+        }
+
+        .delete-btn {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #e02d1f;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn-primary {
+            background: #0071e3;
+            color: white;
+            border: none;
+        }
+
+        .modal-btn-primary:hover {
+            background: #0062cc;
+        }
+
+        .modal-btn-secondary {
+            background: transparent;
+            color: #0071e3;
+            border: 2px solid #0071e3;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #f5f5f7;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>AI Study Crew</h1>
         <p class="subtitle">매주 모임 일정을 쉽게 조율하세요.</p>
+
+        <div class="manage-section">
+            <button class="manage-btn" onclick="openManageModal()">멤버 관리</button>
+        </div>
 
         <div class="section">
             <h2>본인을 선택해주세요</h2>
@@ -254,9 +401,28 @@
         <div id="resultBox"></div>
     </div>
 
+    <!-- 멤버 관리 모달 -->
+    <div class="modal" id="manageModal">
+        <div class="modal-content">
+            <h2 class="modal-header">멤버 관리</h2>
+
+            <div class="modal-input-group">
+                <input type="text" class="modal-input" id="newMemberInput" placeholder="새 멤버 이름" />
+            </div>
+
+            <button class="modal-btn modal-btn-primary" onclick="addNewMember()" style="width: 100%; margin-bottom: 24px;">멤버 추가</button>
+
+            <div class="modal-members-list" id="modalMembersList"></div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeManageModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 고정 멤버 목록
-        const allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
+        // 멤버 목록 (로컬 스토리지에서 관리)
+        let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
 
         let selectedMember = null;
         let selectedDates = [];
@@ -298,10 +464,12 @@
 
         // 로컬 스토리지에서 데이터 로드
         function loadData() {
+            const savedMembers = localStorage.getItem('aiStudyCrewAllMembers');
             const savedMember = localStorage.getItem('aiStudyCrewSelectedMember');
             const savedDates = localStorage.getItem('aiStudyCrewSelectedDates');
             const savedAvailability = localStorage.getItem('aiStudyCrewAvailability');
 
+            if (savedMembers) allMembers = JSON.parse(savedMembers);
             if (savedMember) selectedMember = savedMember;
             if (savedDates) selectedDates = JSON.parse(savedDates);
             if (savedAvailability) availability = JSON.parse(savedAvailability);
@@ -314,10 +482,107 @@
 
         // 데이터 저장
         function saveData() {
+            localStorage.setItem('aiStudyCrewAllMembers', JSON.stringify(allMembers));
             localStorage.setItem('aiStudyCrewSelectedMember', selectedMember || '');
             localStorage.setItem('aiStudyCrewSelectedDates', JSON.stringify(selectedDates));
             localStorage.setItem('aiStudyCrewAvailability', JSON.stringify(availability));
         }
+
+        // 멤버 관리 모달 열기
+        function openManageModal() {
+            document.getElementById('manageModal').classList.add('active');
+            renderModalMembers();
+        }
+
+        // 멤버 관리 모달 닫기
+        function closeManageModal() {
+            document.getElementById('manageModal').classList.remove('active');
+            document.getElementById('newMemberInput').value = '';
+        }
+
+        // 모달 멤버 목록 렌더링
+        function renderModalMembers() {
+            const container = document.getElementById('modalMembersList');
+
+            if (allMembers.length === 0) {
+                container.innerHTML = '<div class="empty-state">등록된 멤버가 없습니다.</div>';
+                return;
+            }
+
+            container.innerHTML = allMembers.map(member => `
+                <div class="modal-member-item">
+                    <span class="modal-member-name">${member}</span>
+                    <button class="delete-btn" onclick="deleteMember('${member}')">삭제</button>
+                </div>
+            `).join('');
+        }
+
+        // 새 멤버 추가
+        function addNewMember() {
+            const input = document.getElementById('newMemberInput');
+            const name = input.value.trim();
+
+            if (!name) {
+                alert('멤버 이름을 입력해주세요.');
+                return;
+            }
+
+            if (allMembers.includes(name)) {
+                alert('이미 등록된 멤버입니다.');
+                return;
+            }
+
+            allMembers.push(name);
+            input.value = '';
+            saveData();
+            renderModalMembers();
+            renderMembers();
+            renderScheduleTable();
+            updateBestDate();
+        }
+
+        // 멤버 삭제
+        function deleteMember(name) {
+            if (!confirm(`${name}을(를) 삭제하시겠습니까?\n해당 멤버의 모든 참석 정보가 삭제됩니다.`)) {
+                return;
+            }
+
+            allMembers = allMembers.filter(m => m !== name);
+
+            // 선택된 멤버였다면 선택 해제
+            if (selectedMember === name) {
+                selectedMember = null;
+            }
+
+            // 해당 멤버의 참석 정보 삭제
+            for (let date in availability) {
+                if (availability[date][name]) {
+                    delete availability[date][name];
+                }
+            }
+
+            saveData();
+            renderModalMembers();
+            renderMembers();
+            renderScheduleTable();
+            updateBestDate();
+        }
+
+        // Enter 키로 멤버 추가
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('newMemberInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addNewMember();
+                }
+            });
+
+            // 모달 외부 클릭시 닫기
+            document.getElementById('manageModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeManageModal();
+                }
+            });
+        });
 
         // 멤버 선택
         function selectMember(name) {
