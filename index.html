@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Crew - 일정 조율</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            padding: 60px 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #1d1d1f;
+            margin-bottom: 8px;
+            font-size: 56px;
+            font-weight: 600;
+            letter-spacing: -0.015em;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #6e6e73;
+            margin-bottom: 60px;
+            font-size: 21px;
+            font-weight: 400;
+            text-align: center;
+            letter-spacing: 0.011em;
+        }
+
+        .section {
+            margin-bottom: 80px;
+        }
+
+        .section h2 {
+            color: #1d1d1f;
+            margin-bottom: 32px;
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+            text-align: center;
+        }
+
+        .members-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .member-card {
+            background: white;
+            padding: 24px 16px;
+            border-radius: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #d2d2d7;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .member-card:hover {
+            border-color: #0071e3;
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .member-card.selected {
+            background: #0071e3;
+            border-color: #0071e3;
+            box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
+        }
+
+        .member-card.selected .member-name {
+            color: white;
+        }
+
+        .member-name {
+            font-weight: 500;
+            color: #1d1d1f;
+            font-size: 17px;
+            letter-spacing: -0.022em;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .schedule-table th,
+        .schedule-table td {
+            padding: 16px 20px;
+            text-align: center;
+            border-bottom: 1px solid #d2d2d7;
+        }
+
+        .schedule-table th {
+            background: #fbfbfd;
+            color: #1d1d1f;
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: -0.016em;
+        }
+
+        .schedule-table tbody tr:hover {
+            background: #f5f5f7;
+        }
+
+        .schedule-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .date-header {
+            background: #fbfbfd !important;
+        }
+
+        .attendance-count {
+            font-size: 17px;
+            font-weight: 600;
+            color: #0071e3;
+        }
+
+        .result-box {
+            background: white;
+            padding: 48px 32px;
+            border-radius: 18px;
+            margin-top: 60px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .result-box h3 {
+            font-size: 21px;
+            margin-bottom: 16px;
+            color: #6e6e73;
+            font-weight: 500;
+        }
+
+        .result-box .best-date-text {
+            font-size: 40px;
+            font-weight: 600;
+            margin: 16px 0;
+            color: #1d1d1f;
+            letter-spacing: -0.015em;
+        }
+
+        .result-box .attendance-text {
+            font-size: 19px;
+            color: #6e6e73;
+            font-weight: 400;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            color: #86868b;
+            font-size: 17px;
+        }
+
+        .date-input-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .date-card {
+            background: white;
+            padding: 28px 40px;
+            border-radius: 18px;
+            border: 2px solid #d2d2d7;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .date-card:hover {
+            border-color: #0071e3;
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .date-card.selected {
+            background: #0071e3;
+            border-color: #0071e3;
+            box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
+        }
+
+        .date-card.selected .date-text {
+            color: white;
+        }
+
+        .date-card.selected .day-text {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .date-text {
+            font-weight: 600;
+            font-size: 28px;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+            letter-spacing: -0.015em;
+        }
+
+        .day-text {
+            font-size: 15px;
+            color: #86868b;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Study Crew</h1>
+        <p class="subtitle">매주 모임 일정을 쉽게 조율하세요.</p>
+
+        <div class="section">
+            <h2>본인을 선택해주세요</h2>
+            <div class="members-list" id="membersList"></div>
+        </div>
+
+        <div class="section">
+            <h2>참석 가능한 날짜를 선택해주세요</h2>
+            <div class="date-input-group" id="datesList"></div>
+        </div>
+
+        <div class="section">
+            <h2>참석 현황</h2>
+            <div id="scheduleTableContainer"></div>
+        </div>
+
+        <div id="resultBox"></div>
+    </div>
+
+    <script>
+        // 고정 멤버 목록
+        const allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
+
+        let selectedMember = null;
+        let selectedDates = [];
+        let availability = {};
+
+        // 이번 주 수, 목, 금 날짜 계산
+        function getThisWeekDates() {
+            const today = new Date();
+            const currentDay = today.getDay(); // 0: 일요일, 1: 월요일, ...
+            const dates = [];
+
+            // 수요일(3), 목요일(4), 금요일(5)
+            const targetDays = [
+                { day: 3, name: '수요일' },
+                { day: 4, name: '목요일' },
+                { day: 5, name: '금요일' }
+            ];
+
+            targetDays.forEach(target => {
+                const diff = target.day - currentDay;
+                const targetDate = new Date(today);
+                targetDate.setDate(today.getDate() + diff);
+
+                const dateString = targetDate.toISOString().split('T')[0];
+                const month = targetDate.getMonth() + 1;
+                const day = targetDate.getDate();
+
+                dates.push({
+                    value: dateString,
+                    display: `${month}월 ${day}일`,
+                    dayName: target.name
+                });
+            });
+
+            return dates;
+        }
+
+        const weekDates = getThisWeekDates();
+
+        // 로컬 스토리지에서 데이터 로드
+        function loadData() {
+            const savedMember = localStorage.getItem('aiStudyCrewSelectedMember');
+            const savedDates = localStorage.getItem('aiStudyCrewSelectedDates');
+            const savedAvailability = localStorage.getItem('aiStudyCrewAvailability');
+
+            if (savedMember) selectedMember = savedMember;
+            if (savedDates) selectedDates = JSON.parse(savedDates);
+            if (savedAvailability) availability = JSON.parse(savedAvailability);
+
+            renderMembers();
+            renderDates();
+            renderScheduleTable();
+            updateBestDate();
+        }
+
+        // 데이터 저장
+        function saveData() {
+            localStorage.setItem('aiStudyCrewSelectedMember', selectedMember || '');
+            localStorage.setItem('aiStudyCrewSelectedDates', JSON.stringify(selectedDates));
+            localStorage.setItem('aiStudyCrewAvailability', JSON.stringify(availability));
+        }
+
+        // 멤버 선택
+        function selectMember(name) {
+            selectedMember = name;
+            saveData();
+            renderMembers();
+            renderScheduleTable();
+        }
+
+        // 멤버 목록 렌더링
+        function renderMembers() {
+            const container = document.getElementById('membersList');
+
+            container.innerHTML = allMembers.map(member => `
+                <div class="member-card ${selectedMember === member ? 'selected' : ''}" onclick="selectMember('${member}')">
+                    <span class="member-name">${member}</span>
+                </div>
+            `).join('');
+        }
+
+        // 날짜 토글
+        function toggleDate(dateValue) {
+            if (!selectedMember) {
+                alert('먼저 본인을 선택해주세요.');
+                return;
+            }
+
+            const index = selectedDates.indexOf(dateValue);
+            if (index > -1) {
+                selectedDates.splice(index, 1);
+                // 참석 정보에서 제거
+                if (availability[dateValue]) {
+                    delete availability[dateValue][selectedMember];
+                }
+            } else {
+                selectedDates.push(dateValue);
+                // 참석 정보 초기화
+                if (!availability[dateValue]) {
+                    availability[dateValue] = {};
+                }
+                availability[dateValue][selectedMember] = true;
+            }
+
+            saveData();
+            renderDates();
+            renderScheduleTable();
+            updateBestDate();
+        }
+
+        // 날짜 목록 렌더링
+        function renderDates() {
+            const container = document.getElementById('datesList');
+
+            container.innerHTML = weekDates.map(date => `
+                <div class="date-card ${selectedDates.includes(date.value) ? 'selected' : ''}" onclick="toggleDate('${date.value}')">
+                    <div class="date-text">${date.display}</div>
+                    <div class="day-text">${date.dayName}</div>
+                </div>
+            `).join('');
+        }
+
+        // 날짜 형식 변환
+        function formatDate(dateString) {
+            const date = new Date(dateString + 'T00:00:00');
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const dayOfWeek = days[date.getDay()];
+
+            return `${month}월 ${day}일 (${dayOfWeek})`;
+        }
+
+        // 스케줄 테이블 렌더링
+        function renderScheduleTable() {
+            const container = document.getElementById('scheduleTableContainer');
+
+            if (!selectedMember) {
+                container.innerHTML = '<div class="empty-state">본인을 선택해주세요.</div>';
+                return;
+            }
+
+            // 모든 날짜에 대한 참석 현황 표시 (선택하지 않은 날짜도 포함)
+            const allDates = weekDates.map(d => d.value);
+
+            // 각 날짜별 참석 가능 인원 계산
+            const dateCounts = {};
+            allDates.forEach(date => {
+                dateCounts[date] = 0;
+                allMembers.forEach(member => {
+                    if (availability[date] && availability[date][member]) {
+                        dateCounts[date]++;
+                    }
+                });
+            });
+
+            let html = '<table class="schedule-table">';
+
+            // 헤더
+            html += '<thead><tr><th>멤버</th>';
+            allDates.forEach(date => {
+                html += `<th class="date-header">${formatDate(date)}</th>`;
+            });
+            html += '</tr></thead>';
+
+            // 멤버별 참석 여부
+            html += '<tbody>';
+            allMembers.forEach(member => {
+                const isCurrentUser = member === selectedMember;
+                html += `<tr style="${isCurrentUser ? 'background: #fff3cd;' : ''}"><td><strong>${member}${isCurrentUser ? ' (나)' : ''}</strong></td>`;
+                allDates.forEach(date => {
+                    const isAvailable = availability[date] && availability[date][member];
+                    html += `<td>${isAvailable ? '✓' : '-'}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            // 참석 가능 인원 합계
+            html += '<tr style="background: #f8f9fa; font-weight: bold;"><td>참석 가능 인원</td>';
+            allDates.forEach(date => {
+                html += `<td class="attendance-count">${dateCounts[date]} / ${allMembers.length}</td>`;
+            });
+            html += '</tr>';
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // 최적의 날짜 계산 및 표시
+        function updateBestDate() {
+            const resultBox = document.getElementById('resultBox');
+
+            const allDates = weekDates.map(d => d.value);
+
+            // 각 날짜별 참석 가능 인원 계산
+            let maxCount = 0;
+            let bestDates = [];
+
+            allDates.forEach(date => {
+                let count = 0;
+                allMembers.forEach(member => {
+                    if (availability[date] && availability[date][member]) {
+                        count++;
+                    }
+                });
+
+                if (count > maxCount) {
+                    maxCount = count;
+                    bestDates = [date];
+                } else if (count === maxCount && count > 0) {
+                    bestDates.push(date);
+                }
+            });
+
+            if (maxCount === 0) {
+                resultBox.innerHTML = `
+                    <div class="result-box">
+                        <h3>아직 참석 가능한 멤버가 없습니다</h3>
+                        <p class="attendance-text">참석 가능한 날짜를 선택해주세요.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
+
+            resultBox.innerHTML = `
+                <div class="result-box">
+                    <h3>최적의 모임 날짜</h3>
+                    <div class="best-date-text">${bestDatesText}</div>
+                    <p class="attendance-text">${maxCount}명 / ${allMembers.length}명 참석 가능</p>
+                </div>
+            `;
+        }
+
+        // 페이지 로드 시 데이터 로드
+        loadData();
+    </script>
+</body>
+</html>
