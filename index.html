@@ -372,6 +372,35 @@
         .modal-btn-secondary:hover {
             background: #f5f5f7;
         }
+
+        .submit-section {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .submit-btn {
+            background: #0071e3;
+            color: white;
+            border: none;
+            padding: 16px 48px;
+            font-size: 17px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
+        }
+
+        .submit-btn:hover {
+            background: #0062cc;
+            transform: scale(1.02);
+        }
+
+        .submit-btn:disabled {
+            background: #d2d2d7;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -391,6 +420,10 @@
         <div class="section">
             <h2>참석 가능한 날짜를 선택해주세요</h2>
             <div class="date-input-group" id="datesList"></div>
+        </div>
+
+        <div class="submit-section">
+            <button class="submit-btn" id="submitBtn" onclick="submitSelection()" disabled>입력 완료</button>
         </div>
 
         <div class="section">
@@ -465,13 +498,12 @@
         // 로컬 스토리지에서 데이터 로드
         function loadData() {
             const savedMembers = localStorage.getItem('aiStudyCrewAllMembers');
-            const savedMember = localStorage.getItem('aiStudyCrewSelectedMember');
-            const savedDates = localStorage.getItem('aiStudyCrewSelectedDates');
             const savedAvailability = localStorage.getItem('aiStudyCrewAvailability');
 
             if (savedMembers) allMembers = JSON.parse(savedMembers);
-            if (savedMember) selectedMember = savedMember;
-            if (savedDates) selectedDates = JSON.parse(savedDates);
+            // 멤버와 날짜 선택은 초기화 (로드하지 않음)
+            selectedMember = null;
+            selectedDates = [];
             if (savedAvailability) availability = JSON.parse(savedAvailability);
 
             renderMembers();
@@ -587,9 +619,8 @@
         // 멤버 선택
         function selectMember(name) {
             selectedMember = name;
-            saveData();
+            updateSubmitButton();
             renderMembers();
-            renderScheduleTable();
         }
 
         // 멤버 목록 렌더링
@@ -613,23 +644,12 @@
             const index = selectedDates.indexOf(dateValue);
             if (index > -1) {
                 selectedDates.splice(index, 1);
-                // 참석 정보에서 제거
-                if (availability[dateValue]) {
-                    delete availability[dateValue][selectedMember];
-                }
             } else {
                 selectedDates.push(dateValue);
-                // 참석 정보 초기화
-                if (!availability[dateValue]) {
-                    availability[dateValue] = {};
-                }
-                availability[dateValue][selectedMember] = true;
             }
 
-            saveData();
+            updateSubmitButton();
             renderDates();
-            renderScheduleTable();
-            updateBestDate();
         }
 
         // 날짜 목록 렌더링
@@ -658,11 +678,6 @@
         // 스케줄 테이블 렌더링
         function renderScheduleTable() {
             const container = document.getElementById('scheduleTableContainer');
-
-            if (!selectedMember) {
-                container.innerHTML = '<div class="empty-state">본인을 선택해주세요.</div>';
-                return;
-            }
 
             // 모든 날짜에 대한 참석 현황 표시 (선택하지 않은 날짜도 포함)
             const allDates = weekDates.map(d => d.value);
@@ -755,6 +770,46 @@
                     <p class="attendance-text">${maxCount}명 / ${allMembers.length}명 참석 가능</p>
                 </div>
             `;
+        }
+
+        // 입력 완료 버튼 활성화/비활성화 업데이트
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submitBtn');
+            // 멤버가 선택되고 최소 1개 이상의 날짜가 선택되었을 때 활성화
+            if (selectedMember && selectedDates.length > 0) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        // 입력 완료 버튼 클릭 시 실행
+        function submitSelection() {
+            if (!selectedMember || selectedDates.length === 0) {
+                return;
+            }
+
+            // 선택한 날짜를 availability에 저장
+            selectedDates.forEach(dateValue => {
+                if (!availability[dateValue]) {
+                    availability[dateValue] = {};
+                }
+                availability[dateValue][selectedMember] = true;
+            });
+
+            saveData();
+
+            // 선택 초기화
+            selectedMember = null;
+            selectedDates = [];
+
+            renderMembers();
+            renderDates();
+            renderScheduleTable();
+            updateBestDate();
+            updateSubmitButton();
+
+            alert('입력이 완료되었습니다!');
         }
 
         // 페이지 로드 시 데이터 로드
