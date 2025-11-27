@@ -437,23 +437,44 @@
             font-style: italic;
         }
 
-        .unavailable-btn {
+        .unavailable-card {
             background: white;
-            color: #ff3b30;
+            padding: 28px 40px;
+            border-radius: 18px;
             border: 2px solid #ff3b30;
-            padding: 12px 32px;
-            font-size: 15px;
-            font-weight: 500;
-            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            min-width: 140px;
         }
 
-        .unavailable-btn:hover {
-            background: #ff3b30;
-            color: white;
+        .unavailable-card:hover:not(.disabled) {
+            border-color: #ff3b30;
             transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(255, 59, 48, 0.25);
+        }
+
+        .unavailable-card.selected {
+            background: #ff3b30;
+            border-color: #ff3b30;
+            box-shadow: 0 4px 16px rgba(255, 59, 48, 0.4);
+        }
+
+        .unavailable-card.selected .unavailable-text {
+            color: white;
+        }
+
+        .unavailable-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #d2d2d7;
+        }
+
+        .unavailable-text {
+            font-weight: 600;
+            font-size: 17px;
+            color: #ff3b30;
+            letter-spacing: -0.015em;
         }
     </style>
 </head>
@@ -473,10 +494,7 @@
 
         <div class="section">
             <h2>참석 가능한 날짜를 선택해주세요</h2>
-            <div class="date-input-group" id="datesList"></div>
-            <div style="text-align: center;">
-                <button class="unavailable-btn" id="unavailableBtn" onclick="selectAllUnavailable()" disabled>모든 날짜 불가능</button>
-            </div>
+            <div class="date-input-group" id="datesListContainer"></div>
         </div>
 
         <div class="submit-section">
@@ -713,6 +731,11 @@
                 selectedDates.splice(index, 1);
             } else {
                 selectedDates.push(dateValue);
+                // 날짜를 선택하면 "모든 날짜 불가능" 선택 해제
+                const unavailableCard = document.getElementById('unavailableCard');
+                if (unavailableCard) {
+                    unavailableCard.classList.remove('selected');
+                }
             }
 
             updateSubmitButton();
@@ -721,14 +744,25 @@
 
         // 날짜 목록 렌더링
         function renderDates() {
-            const container = document.getElementById('datesList');
+            const container = document.getElementById('datesListContainer');
 
-            container.innerHTML = weekDates.map(date => `
+            const datesHtml = weekDates.map(date => `
                 <div class="date-card ${selectedDates.includes(date.value) ? 'selected' : ''}" onclick="toggleDate('${date.value}')">
                     <div class="date-text">${date.display}</div>
                     <div class="day-text">${date.dayName}</div>
                 </div>
             `).join('');
+
+            const isUnavailableSelected = selectedMember && selectedDates.length === 0 && document.getElementById('unavailableCard')?.classList.contains('selected');
+            const unavailableHtml = `
+                <div class="unavailable-card ${!selectedMember ? 'disabled' : ''} ${isUnavailableSelected ? 'selected' : ''}"
+                     id="unavailableCard"
+                     onclick="toggleUnavailable()">
+                    <div class="unavailable-text">모든 날짜<br>불가능</div>
+                </div>
+            `;
+
+            container.innerHTML = datesHtml + unavailableHtml;
         }
 
         // 날짜 형식 변환
@@ -874,32 +908,34 @@
 
         // 모든 날짜 불가능 버튼 활성화/비활성화 업데이트
         function updateUnavailableButton() {
-            const unavailableBtn = document.getElementById('unavailableBtn');
-            // 멤버가 선택되었을 때 활성화
-            if (selectedMember) {
-                unavailableBtn.disabled = false;
-            } else {
-                unavailableBtn.disabled = true;
-            }
+            // renderDates()에서 처리하므로 별도 업데이트 불필요
         }
 
-        // 모든 날짜 불가능 선택
-        function selectAllUnavailable() {
+        // 모든 날짜 불가능 토글
+        function toggleUnavailable() {
             if (!selectedMember) {
                 alert('먼저 본인을 선택해주세요.');
                 return;
             }
 
-            // 모든 날짜 선택 해제
-            selectedDates = [];
+            const unavailableCard = document.getElementById('unavailableCard');
+            const isCurrentlySelected = unavailableCard.classList.contains('selected');
 
-            // 입력 완료 버튼 활성화 (날짜가 없어도 가능)
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = false;
+            if (isCurrentlySelected) {
+                // 선택 해제
+                unavailableCard.classList.remove('selected');
+                updateSubmitButton();
+            } else {
+                // 모든 날짜 선택 해제하고 불가능 선택
+                selectedDates = [];
+                unavailableCard.classList.add('selected');
+
+                // 입력 완료 버튼 활성화
+                const submitBtn = document.getElementById('submitBtn');
+                submitBtn.disabled = false;
+            }
 
             renderDates();
-
-            alert('모든 날짜 불가능으로 설정되었습니다.\n"입력 완료"를 클릭하세요.');
         }
 
         // 입력 완료 버튼 클릭 시 실행
