@@ -500,6 +500,46 @@
             background: #d2d2d7;
             cursor: not-allowed;
         }
+
+        .settings-btn {
+            background: transparent;
+            color: #86868b;
+            border: 2px solid #d2d2d7;
+            padding: 10px 24px;
+            font-size: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 12px;
+        }
+
+        .settings-btn:hover {
+            border-color: #0071e3;
+            color: #0071e3;
+        }
+
+        .auto-notify-btn {
+            background: #5558AF;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .auto-notify-btn:hover {
+            background: #464775;
+            transform: scale(1.02);
+        }
+
+        .auto-notify-btn:disabled {
+            background: #d2d2d7;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -509,6 +549,7 @@
 
         <div class="manage-section">
             <button class="manage-btn" onclick="openManageModal()">멤버 관리</button>
+            <button class="settings-btn" onclick="openFlowSettingsModal()">⚙️ 자동 알림 설정</button>
         </div>
 
         <div class="section">
@@ -552,6 +593,27 @@
         </div>
     </div>
 
+    <!-- Power Automate Flow 설정 모달 -->
+    <div class="modal" id="flowSettingsModal">
+        <div class="modal-content">
+            <h2 class="modal-header">자동 알림 설정</h2>
+
+            <p style="color: #6e6e73; margin-bottom: 20px; font-size: 15px;">
+                Power Automate에서 생성한 Flow의 HTTP POST URL을 입력하세요.<br>
+                <a href="https://make.powerautomate.com" target="_blank" style="color: #0071e3;">Power Automate에서 Flow 만들기 →</a>
+            </p>
+
+            <div class="modal-input-group">
+                <input type="text" class="modal-input" id="flowUrlInput" placeholder="https://prod-xx.westus.logic.azure.com:443/workflows/..." />
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-primary" onclick="saveFlowUrl()">저장</button>
+                <button class="modal-btn modal-btn-secondary" onclick="closeFlowSettingsModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 멤버 목록 (로컬 스토리지에서 관리)
         let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
@@ -560,6 +622,7 @@
         let selectedDates = [];
         let availability = {};
         let submittedMembers = {}; // 입력을 완료한 멤버 추적
+        let flowUrl = ''; // Power Automate Flow URL
 
         // 이번 주 수, 목, 금 날짜 계산
         function getThisWeekDates() {
@@ -600,6 +663,7 @@
             const savedMembers = localStorage.getItem('aiStudyCrewAllMembers');
             const savedAvailability = localStorage.getItem('aiStudyCrewAvailability');
             const savedSubmittedMembers = localStorage.getItem('aiStudyCrewSubmittedMembers');
+            const savedFlowUrl = localStorage.getItem('aiStudyCrewFlowUrl');
 
             if (savedMembers) allMembers = JSON.parse(savedMembers);
             // 멤버와 날짜 선택은 초기화 (로드하지 않음)
@@ -607,6 +671,7 @@
             selectedDates = [];
             if (savedAvailability) availability = JSON.parse(savedAvailability);
             if (savedSubmittedMembers) submittedMembers = JSON.parse(savedSubmittedMembers);
+            if (savedFlowUrl) flowUrl = savedFlowUrl;
 
             renderMembers();
             renderDates();
@@ -916,6 +981,9 @@
                     <div class="best-date-text">${bestDatesText}</div>
                     <p class="attendance-text">${maxCount}명 / ${allMembers.length}명 참석 가능</p>
                     <button class="copy-btn" onclick="copyToClipboard()">📋 일정 복사</button>
+                    <button class="auto-notify-btn" onclick="sendToTeamsFlow()" ${flowUrl ? '' : 'disabled'}>
+                        ${flowUrl ? '🔔 Teams에 자동 알림' : '자동 알림 설정 필요'}
+                    </button>
                 </div>
             `;
         }
@@ -1098,6 +1166,123 @@
                 document.body.removeChild(textarea);
             }
         }
+
+        // Power Automate Flow 설정 모달 열기
+        function openFlowSettingsModal() {
+            document.getElementById('flowSettingsModal').classList.add('active');
+            document.getElementById('flowUrlInput').value = flowUrl;
+        }
+
+        // Power Automate Flow 설정 모달 닫기
+        function closeFlowSettingsModal() {
+            document.getElementById('flowSettingsModal').classList.remove('active');
+        }
+
+        // Flow URL 저장
+        function saveFlowUrl() {
+            const url = document.getElementById('flowUrlInput').value.trim();
+
+            if (url && !url.startsWith('https://')) {
+                alert('올바른 Flow URL을 입력해주세요.\n(https://로 시작해야 합니다)');
+                return;
+            }
+
+            flowUrl = url;
+            localStorage.setItem('aiStudyCrewFlowUrl', url);
+
+            closeFlowSettingsModal();
+            updateBestDate(); // 버튼 상태 업데이트
+
+            if (url) {
+                alert('자동 알림 설정이 저장되었습니다!');
+            } else {
+                alert('자동 알림 설정이 삭제되었습니다.');
+            }
+        }
+
+        // Teams Flow로 일정 전송
+        async function sendToTeamsFlow() {
+            if (!flowUrl) {
+                alert('먼저 자동 알림을 설정해주세요.');
+                return;
+            }
+
+            // 최적의 날짜 계산
+            const allDates = weekDates.map(d => d.value);
+            let maxCount = 0;
+            let bestDates = [];
+
+            allDates.forEach(date => {
+                let count = 0;
+                allMembers.forEach(member => {
+                    if (availability[date] && availability[date][member]) {
+                        count++;
+                    }
+                });
+
+                if (count > maxCount) {
+                    maxCount = count;
+                    bestDates = [date];
+                } else if (count === maxCount && count > 0) {
+                    bestDates.push(date);
+                }
+            });
+
+            if (maxCount === 0) {
+                alert('아직 참석 가능한 멤버가 없습니다.');
+                return;
+            }
+
+            const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
+
+            // 참석 가능한 멤버 목록
+            const attendeesList = [];
+            bestDates.forEach(date => {
+                allMembers.forEach(member => {
+                    if (availability[date] && availability[date][member]) {
+                        if (!attendeesList.includes(member)) {
+                            attendeesList.push(member);
+                        }
+                    }
+                });
+            });
+
+            // Flow로 전송할 데이터
+            const flowData = {
+                date: bestDatesText,
+                attendeeCount: maxCount,
+                totalCount: allMembers.length,
+                attendees: attendeesList.join(', ')
+            };
+
+            try {
+                const response = await fetch(flowUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(flowData)
+                });
+
+                if (response.ok) {
+                    alert('Teams에 일정이 자동으로 전송되었습니다! 🔔\n\n각 멤버는 메시지에서 "나중에 알림 받기"를 설정하여 당일 리마인더를 받을 수 있습니다.');
+                } else {
+                    throw new Error('전송 실패');
+                }
+            } catch (error) {
+                alert('자동 알림 전송에 실패했습니다.\nFlow URL을 확인해주세요.');
+                console.error('Flow 전송 오류:', error);
+            }
+        }
+
+        // 모달 외부 클릭 시 닫기
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('flowSettingsModal')?.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeFlowSettingsModal();
+                }
+            });
+        });
 
         // 페이지 로드 시 데이터 로드
         loadData();
