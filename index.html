@@ -401,6 +401,30 @@
             cursor: not-allowed;
             box-shadow: none;
         }
+
+        .edit-btn {
+            background: transparent;
+            color: #0071e3;
+            border: 2px solid #0071e3;
+            padding: 8px 20px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 8px;
+        }
+
+        .edit-btn:hover {
+            background: #0071e3;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .member-name-cell {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
@@ -706,7 +730,13 @@
             html += '<tbody>';
             allMembers.forEach(member => {
                 const isCurrentUser = member === selectedMember;
-                html += `<tr style="${isCurrentUser ? 'background: #fff3cd;' : ''}"><td><strong>${member}${isCurrentUser ? ' (나)' : ''}</strong></td>`;
+                html += `<tr style="${isCurrentUser ? 'background: #fff3cd;' : ''}">
+                    <td>
+                        <div class="member-name-cell">
+                            <strong>${member}${isCurrentUser ? ' (나)' : ''}</strong>
+                            <button class="edit-btn" onclick="editMemberSchedule('${member}')">수정</button>
+                        </div>
+                    </td>`;
                 allDates.forEach(date => {
                     const isAvailable = availability[date] && availability[date][member];
                     html += `<td>${isAvailable ? '✓' : '-'}</td>`;
@@ -789,6 +819,13 @@
                 return;
             }
 
+            // 먼저 해당 멤버의 기존 참석 정보를 모두 삭제
+            weekDates.forEach(date => {
+                if (availability[date.value] && availability[date.value][selectedMember]) {
+                    delete availability[date.value][selectedMember];
+                }
+            });
+
             // 선택한 날짜를 availability에 저장
             selectedDates.forEach(dateValue => {
                 if (!availability[dateValue]) {
@@ -810,6 +847,30 @@
             updateSubmitButton();
 
             alert('입력이 완료되었습니다!');
+        }
+
+        // 멤버 일정 수정 기능
+        function editMemberSchedule(memberName) {
+            // 해당 멤버로 선택
+            selectedMember = memberName;
+
+            // 현재 해당 멤버가 선택한 날짜들을 가져옴
+            selectedDates = [];
+            weekDates.forEach(date => {
+                if (availability[date.value] && availability[date.value][memberName]) {
+                    selectedDates.push(date.value);
+                }
+            });
+
+            // UI 업데이트
+            renderMembers();
+            renderDates();
+            updateSubmitButton();
+
+            // 페이지 상단으로 스크롤
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            alert(`${memberName}의 일정을 수정합니다.\n날짜를 다시 선택한 후 "입력 완료"를 클릭하세요.`);
         }
 
         // 페이지 로드 시 데이터 로드
