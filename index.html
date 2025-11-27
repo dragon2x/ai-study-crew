@@ -425,6 +425,16 @@
             align-items: center;
             justify-content: space-between;
         }
+
+        .not-submitted-row {
+            background: #f5f5f7 !important;
+            opacity: 0.7;
+        }
+
+        .not-submitted-cell {
+            color: #86868b;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -484,6 +494,7 @@
         let selectedMember = null;
         let selectedDates = [];
         let availability = {};
+        let submittedMembers = {}; // 입력을 완료한 멤버 추적
 
         // 이번 주 수, 목, 금 날짜 계산
         function getThisWeekDates() {
@@ -523,12 +534,14 @@
         function loadData() {
             const savedMembers = localStorage.getItem('aiStudyCrewAllMembers');
             const savedAvailability = localStorage.getItem('aiStudyCrewAvailability');
+            const savedSubmittedMembers = localStorage.getItem('aiStudyCrewSubmittedMembers');
 
             if (savedMembers) allMembers = JSON.parse(savedMembers);
             // 멤버와 날짜 선택은 초기화 (로드하지 않음)
             selectedMember = null;
             selectedDates = [];
             if (savedAvailability) availability = JSON.parse(savedAvailability);
+            if (savedSubmittedMembers) submittedMembers = JSON.parse(savedSubmittedMembers);
 
             renderMembers();
             renderDates();
@@ -542,6 +555,7 @@
             localStorage.setItem('aiStudyCrewSelectedMember', selectedMember || '');
             localStorage.setItem('aiStudyCrewSelectedDates', JSON.stringify(selectedDates));
             localStorage.setItem('aiStudyCrewAvailability', JSON.stringify(availability));
+            localStorage.setItem('aiStudyCrewSubmittedMembers', JSON.stringify(submittedMembers));
         }
 
         // 멤버 관리 모달 열기
@@ -615,6 +629,11 @@
                 if (availability[date][name]) {
                     delete availability[date][name];
                 }
+            }
+
+            // 입력 완료 상태 삭제
+            if (submittedMembers[name]) {
+                delete submittedMembers[name];
             }
 
             saveData();
@@ -730,17 +749,33 @@
             html += '<tbody>';
             allMembers.forEach(member => {
                 const isCurrentUser = member === selectedMember;
-                html += `<tr style="${isCurrentUser ? 'background: #fff3cd;' : ''}">
+                const hasSubmitted = submittedMembers[member];
+
+                let rowStyle = '';
+                if (isCurrentUser) {
+                    rowStyle = 'background: #fff3cd;';
+                } else if (!hasSubmitted) {
+                    rowStyle = 'class="not-submitted-row"';
+                }
+
+                html += `<tr ${rowStyle}>
                     <td>
                         <div class="member-name-cell">
                             <strong>${member}${isCurrentUser ? ' (나)' : ''}</strong>
                             <button class="edit-btn" onclick="editMemberSchedule('${member}')">수정</button>
                         </div>
                     </td>`;
-                allDates.forEach(date => {
-                    const isAvailable = availability[date] && availability[date][member];
-                    html += `<td>${isAvailable ? '✓' : '-'}</td>`;
-                });
+
+                if (!hasSubmitted) {
+                    // 미입력 상태
+                    html += `<td colspan="${allDates.length}" class="not-submitted-cell">미입력</td>`;
+                } else {
+                    // 입력 완료 상태
+                    allDates.forEach(date => {
+                        const isAvailable = availability[date] && availability[date][member];
+                        html += `<td>${isAvailable ? '✓' : '-'}</td>`;
+                    });
+                }
                 html += '</tr>';
             });
 
@@ -833,6 +868,9 @@
                 }
                 availability[dateValue][selectedMember] = true;
             });
+
+            // 입력 완료 상태로 표시
+            submittedMembers[selectedMember] = true;
 
             saveData();
 
