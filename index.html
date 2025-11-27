@@ -436,6 +436,25 @@
             color: #86868b;
             font-style: italic;
         }
+
+        .unavailable-btn {
+            background: white;
+            color: #ff3b30;
+            border: 2px solid #ff3b30;
+            padding: 12px 32px;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 16px;
+        }
+
+        .unavailable-btn:hover {
+            background: #ff3b30;
+            color: white;
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <body>
@@ -455,6 +474,9 @@
         <div class="section">
             <h2>참석 가능한 날짜를 선택해주세요</h2>
             <div class="date-input-group" id="datesList"></div>
+            <div style="text-align: center;">
+                <button class="unavailable-btn" id="unavailableBtn" onclick="selectAllUnavailable()" disabled>모든 날짜 불가능</button>
+            </div>
         </div>
 
         <div class="submit-section">
@@ -664,6 +686,7 @@
         function selectMember(name) {
             selectedMember = name;
             updateSubmitButton();
+            updateUnavailableButton();
             renderMembers();
         }
 
@@ -849,9 +872,39 @@
             }
         }
 
+        // 모든 날짜 불가능 버튼 활성화/비활성화 업데이트
+        function updateUnavailableButton() {
+            const unavailableBtn = document.getElementById('unavailableBtn');
+            // 멤버가 선택되었을 때 활성화
+            if (selectedMember) {
+                unavailableBtn.disabled = false;
+            } else {
+                unavailableBtn.disabled = true;
+            }
+        }
+
+        // 모든 날짜 불가능 선택
+        function selectAllUnavailable() {
+            if (!selectedMember) {
+                alert('먼저 본인을 선택해주세요.');
+                return;
+            }
+
+            // 모든 날짜 선택 해제
+            selectedDates = [];
+
+            // 입력 완료 버튼 활성화 (날짜가 없어도 가능)
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = false;
+
+            renderDates();
+
+            alert('모든 날짜 불가능으로 설정되었습니다.\n"입력 완료"를 클릭하세요.');
+        }
+
         // 입력 완료 버튼 클릭 시 실행
         function submitSelection() {
-            if (!selectedMember || selectedDates.length === 0) {
+            if (!selectedMember) {
                 return;
             }
 
@@ -862,7 +915,7 @@
                 }
             });
 
-            // 선택한 날짜를 availability에 저장
+            // 선택한 날짜를 availability에 저장 (날짜가 없으면 모두 불가능)
             selectedDates.forEach(dateValue => {
                 if (!availability[dateValue]) {
                     availability[dateValue] = {};
@@ -884,6 +937,7 @@
             renderScheduleTable();
             updateBestDate();
             updateSubmitButton();
+            updateUnavailableButton();
 
             alert('입력이 완료되었습니다!');
         }
@@ -905,6 +959,7 @@
             renderMembers();
             renderDates();
             updateSubmitButton();
+            updateUnavailableButton();
 
             // 페이지 상단으로 스크롤
             window.scrollTo({ top: 0, behavior: 'smooth' });
