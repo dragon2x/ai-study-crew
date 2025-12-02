@@ -502,9 +502,57 @@
             cursor: not-allowed;
         }
 
+        /* 로딩 인디케이터 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(245, 245, 247, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #d2d2d7;
+            border-top: 4px solid #0071e3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-left: 20px;
+            font-size: 17px;
+            color: #1d1d1f;
+            font-weight: 500;
+        }
+
     </style>
 </head>
 <body>
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">데이터 불러오는 중...</div>
+    </div>
+
     <div class="container">
         <h1>AI Study Crew</h1>
         <p class="subtitle">매주 모임 일정을 쉽게 조율하세요.</p>
@@ -599,22 +647,20 @@
 
         const weekDates = getThisWeekDates();
 
+        // 로딩 오버레이 숨기기
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
+        }
+
         // Google Sheets에서 데이터 로드
         async function loadData() {
-            try {
-                const response = await fetch(SCRIPT_URL + '?action=load');
-                const data = await response.json();
-
-                if (data.success) {
-                    if (data.members) allMembers = data.members;
-                    if (data.availability) availability = data.availability;
-                    if (data.submittedMembers) submittedMembers = data.submittedMembers;
-                }
-            } catch (error) {
-                console.error('데이터 로드 실패:', error);
-            }
-
-            // 초기 렌더링
+            // 먼저 초기 렌더링 (빠른 화면 표시)
             selectedMember = null;
             selectedDates = [];
             renderMembers();
@@ -622,10 +668,36 @@
             renderScheduleTable();
             updateBestDate();
 
-            // 5초마다 자동 새로고침 (다른 사용자의 변경사항 감지)
+            // 로딩 오버레이 숨기기
+            hideLoading();
+
+            // 백그라운드에서 데이터 로드
+            try {
+                const response = await fetch(SCRIPT_URL + '?action=load', {
+                    cache: 'no-cache'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.members) allMembers = data.members;
+                    if (data.availability) availability = data.availability;
+                    if (data.submittedMembers) submittedMembers = data.submittedMembers;
+
+                    // 데이터 로드 후 다시 렌더링
+                    renderMembers();
+                    renderScheduleTable();
+                    updateBestDate();
+                }
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+            }
+
+            // 10초마다 자동 새로고침 (다른 사용자의 변경사항 감지)
             setInterval(async () => {
                 try {
-                    const response = await fetch(SCRIPT_URL + '?action=load');
+                    const response = await fetch(SCRIPT_URL + '?action=load', {
+                        cache: 'no-cache'
+                    });
                     const data = await response.json();
 
                     if (data.success) {
@@ -640,7 +712,7 @@
                 } catch (error) {
                     console.error('자동 새로고침 실패:', error);
                 }
-            }, 5000);
+            }, 10000); // 5초에서 10초로 변경 (서버 부하 감소)
         }
 
         // Google Sheets에 데이터 저장
