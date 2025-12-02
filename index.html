@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Study Crew - 일정 조율</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -554,7 +559,29 @@
     </div>
 
     <script>
-        // 멤버 목록 (로컬 스토리지에서 관리)
+        // Firebase 설정 (여기에 본인의 Firebase 설정을 넣으세요)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Firebase 초기화
+        let database;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('Firebase 연결 성공');
+        } catch (error) {
+            console.error('Firebase 연결 실패:', error);
+            alert('Firebase 연결에 실패했습니다. Firebase 설정을 확인해주세요.');
+        }
+
+        // 멤버 목록 (Firebase에서 관리)
         let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
 
         let selectedMember = null;
@@ -595,32 +622,70 @@
 
         const weekDates = getThisWeekDates();
 
-        // 로컬 스토리지에서 데이터 로드
+        // Firebase에서 데이터 로드
         function loadData() {
-            const savedMembers = localStorage.getItem('aiStudyCrewAllMembers');
-            const savedAvailability = localStorage.getItem('aiStudyCrewAvailability');
-            const savedSubmittedMembers = localStorage.getItem('aiStudyCrewSubmittedMembers');
+            if (!database) {
+                console.error('Firebase가 초기화되지 않았습니다.');
+                renderMembers();
+                renderDates();
+                renderScheduleTable();
+                updateBestDate();
+                return;
+            }
 
-            if (savedMembers) allMembers = JSON.parse(savedMembers);
-            // 멤버와 날짜 선택은 초기화 (로드하지 않음)
+            // 멤버 목록 로드
+            database.ref('members').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    allMembers = snapshot.val();
+                }
+                renderMembers();
+            });
+
+            // 참석 가능 여부 로드 및 실시간 감지
+            database.ref('availability').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    availability = snapshot.val();
+                } else {
+                    availability = {};
+                }
+                renderScheduleTable();
+                updateBestDate();
+            });
+
+            // 제출 완료 멤버 로드 및 실시간 감지
+            database.ref('submittedMembers').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    submittedMembers = snapshot.val();
+                } else {
+                    submittedMembers = {};
+                }
+                renderScheduleTable();
+            });
+
+            // 초기 렌더링
             selectedMember = null;
             selectedDates = [];
-            if (savedAvailability) availability = JSON.parse(savedAvailability);
-            if (savedSubmittedMembers) submittedMembers = JSON.parse(savedSubmittedMembers);
-
             renderMembers();
             renderDates();
             renderScheduleTable();
             updateBestDate();
         }
 
-        // 데이터 저장
+        // Firebase에 데이터 저장
         function saveData() {
-            localStorage.setItem('aiStudyCrewAllMembers', JSON.stringify(allMembers));
-            localStorage.setItem('aiStudyCrewSelectedMember', selectedMember || '');
-            localStorage.setItem('aiStudyCrewSelectedDates', JSON.stringify(selectedDates));
-            localStorage.setItem('aiStudyCrewAvailability', JSON.stringify(availability));
-            localStorage.setItem('aiStudyCrewSubmittedMembers', JSON.stringify(submittedMembers));
+            if (!database) {
+                console.error('Firebase가 초기화되지 않았습니다.');
+                return;
+            }
+
+            // 멤버 목록 저장
+            database.ref('members').set(allMembers);
+
+            // 참석 가능 여부 저장
+            database.ref('availability').set(availability);
+
+            // 제출 완료 멤버 저장
+            database.ref('submittedMembers').set(submittedMembers);
         }
 
         // 멤버 관리 모달 열기
