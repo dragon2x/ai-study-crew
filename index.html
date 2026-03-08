@@ -1,1220 +1,1238 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Study Crew - 일정 조율</title>
-
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f7;
-            min-height: 100vh;
-            padding: 60px 20px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
-            max-width: 980px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: #1d1d1f;
-            margin-bottom: 8px;
-            font-size: 56px;
-            font-weight: 600;
-            letter-spacing: -0.015em;
-            text-align: center;
-        }
-
-        .subtitle {
-            color: #6e6e73;
-            margin-bottom: 60px;
-            font-size: 21px;
-            font-weight: 400;
-            text-align: center;
-            letter-spacing: 0.011em;
-        }
-
-        .section {
-            margin-bottom: 80px;
-        }
-
-        .section h2 {
-            color: #1d1d1f;
-            margin-bottom: 32px;
-            font-size: 32px;
-            font-weight: 600;
-            letter-spacing: -0.005em;
-            text-align: center;
-        }
-
-        .members-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 12px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .member-card {
-            background: white;
-            padding: 24px 16px;
-            border-radius: 18px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 2px solid #d2d2d7;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .member-card:hover {
-            border-color: #0071e3;
-            transform: scale(1.02);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-        }
-
-        .member-card.selected {
-            background: #0071e3;
-            border-color: #0071e3;
-            box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
-        }
-
-        .member-card.selected .member-name {
-            color: white;
-        }
-
-        .member-name {
-            font-weight: 500;
-            color: #1d1d1f;
-            font-size: 17px;
-            letter-spacing: -0.022em;
-        }
-
-        .schedule-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            background: white;
-            border-radius: 18px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        }
-
-        .schedule-table th,
-        .schedule-table td {
-            padding: 16px 20px;
-            text-align: center;
-            border-bottom: 1px solid #d2d2d7;
-        }
-
-        .schedule-table th {
-            background: #fbfbfd;
-            color: #1d1d1f;
-            font-weight: 600;
-            font-size: 15px;
-            letter-spacing: -0.016em;
-        }
-
-        .schedule-table tbody tr:hover {
-            background: #f5f5f7;
-        }
-
-        .schedule-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .date-header {
-            background: #fbfbfd !important;
-        }
-
-        .attendance-count {
-            font-size: 17px;
-            font-weight: 600;
-            color: #0071e3;
-        }
-
-        .result-box {
-            background: white;
-            padding: 48px 32px;
-            border-radius: 18px;
-            margin-top: 60px;
-            text-align: center;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        }
-
-        .result-box h3 {
-            font-size: 21px;
-            margin-bottom: 16px;
-            color: #6e6e73;
-            font-weight: 500;
-        }
-
-        .result-box .best-date-text {
-            font-size: 40px;
-            font-weight: 600;
-            margin: 16px 0;
-            color: #1d1d1f;
-            letter-spacing: -0.015em;
-        }
-
-        .result-box .attendance-text {
-            font-size: 19px;
-            color: #6e6e73;
-            font-weight: 400;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 40px;
-            color: #86868b;
-            font-size: 17px;
-        }
-
-        .date-input-group {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .date-card {
-            background: white;
-            padding: 28px 40px;
-            border-radius: 18px;
-            border: 2px solid #d2d2d7;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: center;
-            min-width: 140px;
-        }
-
-        .date-card:hover {
-            border-color: #0071e3;
-            transform: scale(1.02);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-        }
-
-        .date-card.selected {
-            background: #0071e3;
-            border-color: #0071e3;
-            box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
-        }
-
-        .date-card.selected .date-text {
-            color: white;
-        }
-
-        .date-card.selected .day-text {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .date-text {
-            font-weight: 600;
-            font-size: 28px;
-            color: #1d1d1f;
-            margin-bottom: 4px;
-            letter-spacing: -0.015em;
-        }
-
-        .day-text {
-            font-size: 15px;
-            color: #86868b;
-            font-weight: 400;
-        }
-
-        .manage-section {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .manage-btn {
-            background: transparent;
-            color: #0071e3;
-            border: 2px solid #0071e3;
-            padding: 10px 24px;
-            font-size: 15px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .manage-btn:hover {
-            background: #0071e3;
-            color: white;
-            transform: scale(1.02);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 18px;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            color: #1d1d1f;
-        }
-
-        .modal-input-group {
-            margin-bottom: 20px;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #d2d2d7;
-            border-radius: 12px;
-            font-size: 17px;
-            transition: all 0.3s;
-        }
-
-        .modal-input:focus {
-            outline: none;
-            border-color: #0071e3;
-        }
-
-        .modal-members-list {
-            margin-bottom: 24px;
-        }
-
-        .modal-member-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            background: #f5f5f7;
-            border-radius: 12px;
-        }
-
-        .modal-member-name {
-            font-size: 17px;
-            color: #1d1d1f;
-        }
-
-        .delete-btn {
-            background: #ff3b30;
-            color: white;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .delete-btn:hover {
-            background: #e02d1f;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        .modal-btn {
-            flex: 1;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 17px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .modal-btn-primary {
-            background: #0071e3;
-            color: white;
-            border: none;
-        }
-
-        .modal-btn-primary:hover {
-            background: #0062cc;
-        }
-
-        .modal-btn-secondary {
-            background: transparent;
-            color: #0071e3;
-            border: 2px solid #0071e3;
-        }
-
-        .modal-btn-secondary:hover {
-            background: #f5f5f7;
-        }
-
-        .submit-section {
-            text-align: center;
-            margin-top: 40px;
-            margin-bottom: 80px;
-        }
-
-        .submit-btn {
-            background: #0071e3;
-            color: white;
-            border: none;
-            padding: 16px 48px;
-            font-size: 17px;
-            font-weight: 600;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
-        }
-
-        .submit-btn:hover {
-            background: #0062cc;
-            transform: scale(1.02);
-        }
-
-        .submit-btn:disabled {
-            background: #d2d2d7;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .edit-btn {
-            background: transparent;
-            color: #0071e3;
-            border: 2px solid #0071e3;
-            padding: 8px 20px;
-            font-size: 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-left: 8px;
-        }
-
-        .edit-btn:hover {
-            background: #0071e3;
-            color: white;
-            transform: scale(1.02);
-        }
-
-        .member-name-cell {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .not-submitted-row {
-            background: #f5f5f7 !important;
-            opacity: 0.7;
-        }
-
-        .not-submitted-cell {
-            color: #86868b;
-            font-style: italic;
-        }
-
-        .unavailable-card {
-            background: white;
-            padding: 28px 40px;
-            border-radius: 18px;
-            border: 2px solid #ff3b30;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: center;
-            min-width: 140px;
-        }
-
-        .unavailable-card:hover:not(.disabled) {
-            border-color: #ff3b30;
-            transform: scale(1.02);
-            box-shadow: 0 4px 16px rgba(255, 59, 48, 0.25);
-        }
-
-        .unavailable-card.selected {
-            background: #ff3b30;
-            border-color: #ff3b30;
-            box-shadow: 0 4px 16px rgba(255, 59, 48, 0.4);
-        }
-
-        .unavailable-card.selected .unavailable-text {
-            color: white;
-        }
-
-        .unavailable-card.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            border-color: #d2d2d7;
-        }
-
-        .unavailable-text {
-            font-weight: 600;
-            font-size: 17px;
-            color: #ff3b30;
-            letter-spacing: -0.015em;
-        }
-
-        .copy-btn {
-            background: #34c759;
-            color: white;
-            border: none;
-            padding: 12px 28px;
-            font-size: 15px;
-            font-weight: 600;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 20px;
-            margin-left: 12px;
-        }
-
-        .copy-btn:hover {
-            background: #2da84a;
-            transform: scale(1.02);
-        }
-
-        .copy-btn:disabled {
-            background: #d2d2d7;
-            cursor: not-allowed;
-        }
-
-        /* 로딩 인디케이터 */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(245, 245, 247, 0.95);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            opacity: 1;
-            transition: opacity 0.3s ease;
-        }
-
-        .loading-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #d2d2d7;
-            border-top: 4px solid #0071e3;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            margin-left: 20px;
-            font-size: 17px;
-            color: #1d1d1f;
-            font-weight: 500;
-        }
-
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Study Crew - 일정 조율</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f7;
+      min-height: 100vh;
+      padding: 60px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #1d1d1f;
+      margin-bottom: 8px;
+      font-size: 56px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #6e6e73;
+      margin-bottom: 60px;
+      font-size: 21px;
+      font-weight: 400;
+      text-align: center;
+      letter-spacing: 0.011em;
+    }
+
+    .section {
+      margin-bottom: 80px;
+    }
+
+    .section h2 {
+      color: #1d1d1f;
+      margin-bottom: 32px;
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      text-align: center;
+    }
+
+    .members-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .member-card {
+      background: white;
+      padding: 24px 16px;
+      border-radius: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 2px solid #d2d2d7;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .member-card:hover {
+      border-color: #0071e3;
+      transform: scale(1.02);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .member-card.selected {
+      background: #0071e3;
+      border-color: #0071e3;
+      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
+    }
+
+    .member-card.selected .member-name {
+      color: white;
+    }
+
+    .member-name {
+      font-weight: 500;
+      color: #1d1d1f;
+      font-size: 17px;
+      letter-spacing: -0.022em;
+    }
+
+    .schedule-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .schedule-table th,
+    .schedule-table td {
+      padding: 16px 20px;
+      text-align: center;
+      border-bottom: 1px solid #d2d2d7;
+    }
+
+    .schedule-table th {
+      background: #fbfbfd;
+      color: #1d1d1f;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.016em;
+    }
+
+    .schedule-table tbody tr:hover {
+      background: #f5f5f7;
+    }
+
+    .schedule-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .date-header {
+      background: #fbfbfd !important;
+    }
+
+    .attendance-count {
+      font-size: 17px;
+      font-weight: 600;
+      color: #0071e3;
+    }
+
+    .result-box {
+      background: white;
+      padding: 48px 32px;
+      border-radius: 18px;
+      margin-top: 60px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .result-box h3 {
+      font-size: 21px;
+      margin-bottom: 16px;
+      color: #6e6e73;
+      font-weight: 500;
+    }
+
+    .result-box .best-date-text {
+      font-size: 40px;
+      font-weight: 600;
+      margin: 16px 0;
+      color: #1d1d1f;
+      letter-spacing: -0.015em;
+    }
+
+    .result-box .attendance-text {
+      font-size: 19px;
+      color: #6e6e73;
+      font-weight: 400;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 40px;
+      color: #86868b;
+      font-size: 17px;
+    }
+
+    .date-input-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .date-card {
+      background: white;
+      padding: 28px 40px;
+      border-radius: 18px;
+      border: 2px solid #d2d2d7;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+      min-width: 140px;
+    }
+
+    .date-card:hover {
+      border-color: #0071e3;
+      transform: scale(1.02);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .date-card.selected {
+      background: #0071e3;
+      border-color: #0071e3;
+      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
+    }
+
+    .date-card.selected .date-text {
+      color: white;
+    }
+
+    .date-card.selected .day-text {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .date-text {
+      font-weight: 600;
+      font-size: 28px;
+      color: #1d1d1f;
+      margin-bottom: 4px;
+      letter-spacing: -0.015em;
+    }
+
+    .day-text {
+      font-size: 15px;
+      color: #86868b;
+      font-weight: 400;
+    }
+
+    .manage-section {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .manage-btn {
+      background: transparent;
+      color: #0071e3;
+      border: 2px solid #0071e3;
+      padding: 10px 24px;
+      font-size: 15px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .manage-btn:hover {
+      background: #0071e3;
+      color: white;
+      transform: scale(1.02);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 18px;
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: #1d1d1f;
+    }
+
+    .modal-input-group {
+      margin-bottom: 20px;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #d2d2d7;
+      border-radius: 12px;
+      font-size: 17px;
+      transition: all 0.3s;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: #0071e3;
+    }
+
+    .modal-members-list {
+      margin-bottom: 24px;
+    }
+
+    .modal-member-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: #f5f5f7;
+      border-radius: 12px;
+    }
+
+    .modal-member-name {
+      font-size: 17px;
+      color: #1d1d1f;
+    }
+
+    .delete-btn {
+      background: #ff3b30;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background: #e02d1f;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .modal-btn-primary {
+      background: #0071e3;
+      color: white;
+      border: none;
+    }
+
+    .modal-btn-primary:hover {
+      background: #0062cc;
+    }
+
+    .modal-btn-secondary {
+      background: transparent;
+      color: #0071e3;
+      border: 2px solid #0071e3;
+    }
+
+    .modal-btn-secondary:hover {
+      background: #f5f5f7;
+    }
+
+    .submit-section {
+      text-align: center;
+      margin-top: 40px;
+      margin-bottom: 80px;
+    }
+
+    .submit-btn {
+      background: #0071e3;
+      color: white;
+      border: none;
+      padding: 16px 48px;
+      font-size: 17px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
+    }
+
+    .submit-btn:hover {
+      background: #0062cc;
+      transform: scale(1.02);
+    }
+
+    .submit-btn:disabled {
+      background: #d2d2d7;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .edit-btn {
+      background: transparent;
+      color: #0071e3;
+      border: 2px solid #0071e3;
+      padding: 8px 20px;
+      font-size: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-left: 8px;
+    }
+
+    .edit-btn:hover {
+      background: #0071e3;
+      color: white;
+      transform: scale(1.02);
+    }
+
+    .member-name-cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .not-submitted-row {
+      background: #f5f5f7 !important;
+      opacity: 0.7;
+    }
+
+    .not-submitted-cell {
+      color: #86868b;
+      font-style: italic;
+    }
+
+    .unavailable-card {
+      background: white;
+      padding: 28px 40px;
+      border-radius: 18px;
+      border: 2px solid #ff3b30;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+      min-width: 140px;
+    }
+
+    .unavailable-card:hover:not(.disabled) {
+      border-color: #ff3b30;
+      transform: scale(1.02);
+      box-shadow: 0 4px 16px rgba(255, 59, 48, 0.25);
+    }
+
+    .unavailable-card.selected {
+      background: #ff3b30;
+      border-color: #ff3b30;
+      box-shadow: 0 4px 16px rgba(255, 59, 48, 0.4);
+    }
+
+    .unavailable-card.selected .unavailable-text {
+      color: white;
+    }
+
+    .unavailable-card.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: #d2d2d7;
+    }
+
+    .unavailable-text {
+      font-weight: 600;
+      font-size: 17px;
+      color: #ff3b30;
+      letter-spacing: -0.015em;
+    }
+
+    .copy-btn {
+      background: #34c759;
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 20px;
+      margin-left: 12px;
+    }
+
+    .copy-btn:hover {
+      background: #2da84a;
+      transform: scale(1.02);
+    }
+
+    .copy-btn:disabled {
+      background: #d2d2d7;
+      cursor: not-allowed;
+    }
+
+    /* 로딩 인디케이터 */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(245, 245, 247, 0.95);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #d2d2d7;
+      border-top: 4px solid #0071e3;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-left: 20px;
+      font-size: 17px;
+      color: #1d1d1f;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
-    <!-- 로딩 오버레이 -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">데이터 불러오는 중...</div>
+  <!-- 로딩 오버레이 -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">데이터 불러오는 중...</div>
+  </div>
+
+  <div class="container">
+    <h1>AI Study Crew</h1>
+    <p class="subtitle">매주 모임 일정을 쉽게 조율하세요.</p>
+
+    <div class="manage-section">
+      <button class="manage-btn" onclick="openManageModal()">멤버 관리</button>
     </div>
 
-    <div class="container">
-        <h1>AI Study Crew</h1>
-        <p class="subtitle">매주 모임 일정을 쉽게 조율하세요.</p>
-
-        <div class="manage-section">
-            <button class="manage-btn" onclick="openManageModal()">멤버 관리</button>
-        </div>
-
-        <div class="section">
-            <h2>본인을 선택해주세요</h2>
-            <div class="members-list" id="membersList"></div>
-        </div>
-
-        <div class="section">
-            <h2>참석 가능한 날짜를 선택해주세요</h2>
-            <div class="date-input-group" id="datesListContainer"></div>
-        </div>
-
-        <div class="submit-section">
-            <button class="submit-btn" id="submitBtn" onclick="submitSelection()" disabled>입력 완료</button>
-        </div>
-
-        <div class="section">
-            <h2>참석 현황</h2>
-            <div id="scheduleTableContainer"></div>
-        </div>
-
-        <div id="resultBox"></div>
+    <div class="section">
+      <h2>본인을 선택해주세요</h2>
+      <div class="members-list" id="membersList"></div>
     </div>
 
-    <!-- 멤버 관리 모달 -->
-    <div class="modal" id="manageModal">
-        <div class="modal-content">
-            <h2 class="modal-header">멤버 관리</h2>
+    <div class="section">
+      <h2>참석 가능한 날짜를 선택해주세요</h2>
+      <div class="date-input-group" id="datesListContainer"></div>
+    </div>
 
-            <div class="modal-input-group">
-                <input type="text" class="modal-input" id="newMemberInput" placeholder="새 멤버 이름" />
+    <div class="submit-section">
+      <button class="submit-btn" id="submitBtn" onclick="submitSelection()" disabled>입력 완료</button>
+    </div>
+
+    <div class="section">
+      <h2>참석 현황</h2>
+      <div id="scheduleTableContainer"></div>
+    </div>
+
+    <div id="resultBox"></div>
+  </div>
+
+  <!-- 멤버 관리 모달 -->
+  <div class="modal" id="manageModal">
+    <div class="modal-content">
+      <h2 class="modal-header">멤버 관리</h2>
+      <div class="modal-input-group">
+        <input type="text" class="modal-input" id="newMemberInput" placeholder="새 멤버 이름" />
+      </div>
+      <button class="modal-btn modal-btn-primary" onclick="addNewMember()" style="width: 100%; margin-bottom: 24px;">멤버 추가</button>
+      <div class="modal-members-list" id="modalMembersList"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-secondary" onclick="closeManageModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Google Apps Script Web App URL
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2CCEL-5_-BHuSrVxEzSyQGmoFEfXyPGniQ_spVDmeBmtxoBajTboZuo_xK9ngyHIv7A/exec';
+
+    // 멤버 목록
+    let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
+    let selectedMember = null;
+    let selectedDates = [];
+    let availability = {};
+    let submittedMembers = {}; // 입력을 완료한 멤버 추적
+
+    // ============================================
+    // 주차 ID 계산 (ISO 8601)
+    // ============================================
+
+    // ISO 8601 주차 문자열 반환 (예: "2026-W10")
+    function getISOWeekString(date) {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = d.getUTCDay() || 7; // 일요일을 7로
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum); // 가장 가까운 목요일
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      const year = d.getUTCFullYear();
+      return year + '-W' + (weekNo < 10 ? '0' : '') + weekNo;
+    }
+
+    // 현재 주의 수요일 기준 주차 ID
+    function getCurrentWeekId() {
+      const today = new Date();
+      const currentDay = today.getDay(); // 0=일, 1=월, ..., 6=토
+      const diffToWed = 3 - currentDay;
+      const wed = new Date(today);
+      if (currentDay === 0) {
+        wed.setDate(today.getDate() - 4); // 일요일: 지난 수요일
+      } else {
+        wed.setDate(today.getDate() + diffToWed);
+      }
+      return getISOWeekString(wed);
+    }
+
+    // 이번 주 수, 목, 금 날짜 계산 (요일 기반)
+    function getThisWeekDates() {
+      const today = new Date();
+      const currentDay = today.getDay(); // 0: 일요일, 1: 월요일, ...
+      const dates = [];
+
+      // 수요일(3), 목요일(4), 금요일(5)
+      const targetDays = [
+        { day: 3, name: '수요일', key: 'wed' },
+        { day: 4, name: '목요일', key: 'thu' },
+        { day: 5, name: '금요일', key: 'fri' }
+      ];
+
+      targetDays.forEach(target => {
+        const diff = target.day - currentDay;
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + diff);
+        const month = targetDate.getMonth() + 1;
+        const day = targetDate.getDate();
+        dates.push({
+          value: target.key, // 요일 키로 변경 (wed, thu, fri)
+          display: `${month}월 ${day}일`,
+          dayName: target.name
+        });
+      });
+
+      return dates;
+    }
+
+    const weekDates = getThisWeekDates();
+
+    // 로딩 오버레이 숨기기
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) {
+        overlay.classList.add('hidden');
+        setTimeout(() => {
+          overlay.style.display = 'none';
+        }, 300);
+      }
+    }
+
+    // Google Sheets에서 데이터 로드
+    async function loadData() {
+      // 먼저 초기 렌더링 (빠른 화면 표시)
+      selectedMember = null;
+      selectedDates = [];
+      renderMembers();
+      renderDates();
+      renderScheduleTable();
+      updateBestDate();
+
+      // 로딩 오버레이 숨기기
+      hideLoading();
+
+      // 현재 주차 ID
+      const weekId = getCurrentWeekId();
+
+      // 백그라운드에서 데이터 로드 (weekId 포함)
+      try {
+        const response = await fetch(SCRIPT_URL + '?action=load&weekId=' + encodeURIComponent(weekId), { cache: 'no-cache' });
+        const data = await response.json();
+
+        if (data.success) {
+          if (data.members) allMembers = data.members;
+          if (data.availability) availability = data.availability;
+          if (data.submittedMembers) submittedMembers = data.submittedMembers;
+
+          // 데이터 로드 후 다시 렌더링
+          renderMembers();
+          renderScheduleTable();
+          updateBestDate();
+        }
+      } catch (error) {
+        console.error('데이터 로드 실패:', error);
+      }
+
+      // 10초마다 자동 새로고침 (다른 사용자의 변경사항 감지)
+      setInterval(async () => {
+        try {
+          const response = await fetch(SCRIPT_URL + '?action=load&weekId=' + encodeURIComponent(weekId), { cache: 'no-cache' });
+          const data = await response.json();
+
+          if (data.success) {
+            if (data.members) allMembers = data.members;
+            if (data.availability) availability = data.availability;
+            if (data.submittedMembers) submittedMembers = data.submittedMembers;
+
+            renderMembers();
+            renderScheduleTable();
+            updateBestDate();
+          }
+        } catch (error) {
+          console.error('자동 새로고침 실패:', error);
+        }
+      }, 10000);
+    }
+
+    // Google Sheets에 데이터 저장 (weekId 포함)
+    async function saveData() {
+      try {
+        const weekId = getCurrentWeekId();
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'save',
+            weekId: weekId,
+            members: allMembers,
+            availability: availability,
+            submittedMembers: submittedMembers
+          })
+        });
+        console.log('데이터 저장 완료 (주차: ' + weekId + ')');
+      } catch (error) {
+        console.error('데이터 저장 실패:', error);
+      }
+    }
+
+    // 멤버 관리 모달 열기
+    function openManageModal() {
+      document.getElementById('manageModal').classList.add('active');
+      renderModalMembers();
+    }
+
+    // 멤버 관리 모달 닫기
+    function closeManageModal() {
+      document.getElementById('manageModal').classList.remove('active');
+      document.getElementById('newMemberInput').value = '';
+    }
+
+    // 모달 멤버 목록 렌더링
+    function renderModalMembers() {
+      const container = document.getElementById('modalMembersList');
+      if (allMembers.length === 0) {
+        container.innerHTML = '<div class="empty-state">등록된 멤버가 없습니다.</div>';
+        return;
+      }
+
+      container.innerHTML = allMembers.map(member => `
+        <div class="modal-member-item">
+          <span class="modal-member-name">${member}</span>
+          <button class="delete-btn" onclick="deleteMember('${member}')">삭제</button>
+        </div>
+      `).join('');
+    }
+
+    // 새 멤버 추가
+    function addNewMember() {
+      const input = document.getElementById('newMemberInput');
+      const name = input.value.trim();
+
+      if (!name) {
+        alert('멤버 이름을 입력해주세요.');
+        return;
+      }
+
+      if (allMembers.includes(name)) {
+        alert('이미 등록된 멤버입니다.');
+        return;
+      }
+
+      allMembers.push(name);
+      input.value = '';
+      saveData();
+      renderModalMembers();
+      renderMembers();
+      renderScheduleTable();
+      updateBestDate();
+    }
+
+    // 멤버 삭제
+    function deleteMember(name) {
+      if (!confirm(`${name}을(를) 삭제하시겠습니까?\n해당 멤버의 모든 참석 정보가 삭제됩니다.`)) {
+        return;
+      }
+
+      allMembers = allMembers.filter(m => m !== name);
+
+      // 선택된 멤버였다면 선택 해제
+      if (selectedMember === name) {
+        selectedMember = null;
+      }
+
+      // 해당 멤버의 참석 정보 삭제
+      for (let date in availability) {
+        if (availability[date][name]) {
+          delete availability[date][name];
+        }
+      }
+
+      // 입력 완료 상태 삭제
+      if (submittedMembers[name]) {
+        delete submittedMembers[name];
+      }
+
+      saveData();
+      renderModalMembers();
+      renderMembers();
+      renderScheduleTable();
+      updateBestDate();
+    }
+
+    // Enter 키로 멤버 추가
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('newMemberInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          addNewMember();
+        }
+      });
+
+      // 모달 외부 클릭시 닫기
+      document.getElementById('manageModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeManageModal();
+        }
+      });
+    });
+
+    // 멤버 선택
+    function selectMember(name) {
+      selectedMember = name;
+      updateSubmitButton();
+      updateUnavailableButton();
+      renderMembers();
+    }
+
+    // 멤버 목록 렌더링
+    function renderMembers() {
+      const container = document.getElementById('membersList');
+      container.innerHTML = allMembers.map(member => `
+        <div class="member-card ${selectedMember === member ? 'selected' : ''}" onclick="selectMember('${member}')">
+          <span class="member-name">${member}</span>
+        </div>
+      `).join('');
+    }
+
+    // 날짜 토글
+    function toggleDate(dateValue) {
+      if (!selectedMember) {
+        alert('먼저 본인을 선택해주세요.');
+        return;
+      }
+
+      const index = selectedDates.indexOf(dateValue);
+      if (index > -1) {
+        selectedDates.splice(index, 1);
+      } else {
+        selectedDates.push(dateValue);
+        // 날짜를 선택하면 "모든 날짜 불가능" 선택 해제
+        const unavailableCard = document.getElementById('unavailableCard');
+        if (unavailableCard) {
+          unavailableCard.classList.remove('selected');
+        }
+      }
+
+      updateSubmitButton();
+      renderDates();
+    }
+
+    // 날짜 목록 렌더링
+    function renderDates() {
+      const container = document.getElementById('datesListContainer');
+      const datesHtml = weekDates.map(date => `
+        <div class="date-card ${selectedDates.includes(date.value) ? 'selected' : ''}" onclick="toggleDate('${date.value}')">
+          <div class="date-text">${date.display}</div>
+          <div class="day-text">${date.dayName}</div>
+        </div>
+      `).join('');
+
+      const isUnavailableSelected = selectedMember && selectedDates.length === 0 && document.getElementById('unavailableCard')?.classList.contains('selected');
+
+      const unavailableHtml = `
+        <div class="unavailable-card ${!selectedMember ? 'disabled' : ''} ${isUnavailableSelected ? 'selected' : ''}" id="unavailableCard" onclick="toggleUnavailable()">
+          <div class="unavailable-text">모든 날짜<br>불가능</div>
+        </div>
+      `;
+
+      container.innerHTML = datesHtml + unavailableHtml;
+    }
+
+    // 날짜 형식 변환 (요일 키 기반)
+    function formatDate(dayKey) {
+      // 요일 키에 해당하는 실제 날짜 찾기
+      const dateInfo = weekDates.find(d => d.value === dayKey);
+      if (dateInfo) {
+        return `${dateInfo.display} (${dateInfo.dayName})`;
+      }
+      return dayKey; // fallback
+    }
+
+    // 스케줄 테이블 렌더링
+    function renderScheduleTable() {
+      const container = document.getElementById('scheduleTableContainer');
+
+      // 모든 날짜에 대한 참석 현황 표시 (선택하지 않은 날짜도 포함)
+      const allDates = weekDates.map(d => d.value);
+
+      // 각 날짜별 참석 가능 인원 계산
+      const dateCounts = {};
+      allDates.forEach(date => {
+        dateCounts[date] = 0;
+        allMembers.forEach(member => {
+          if (availability[date] && availability[date][member]) {
+            dateCounts[date]++;
+          }
+        });
+      });
+
+      let html = '<table class="schedule-table">';
+
+      // 헤더
+      html += '<thead><tr><th>멤버</th>';
+      allDates.forEach(date => {
+        html += `<th class="date-header">${formatDate(date)}</th>`;
+      });
+      html += '</tr></thead>';
+
+      // 멤버별 참석 여부
+      html += '<tbody>';
+      allMembers.forEach(member => {
+        const isCurrentUser = member === selectedMember;
+        const hasSubmitted = submittedMembers[member];
+        let rowStyle = '';
+        if (isCurrentUser) {
+          rowStyle = 'background: #fff3cd;';
+        } else if (!hasSubmitted) {
+          rowStyle = 'class="not-submitted-row"';
+        }
+
+        html += `<tr ${rowStyle}>
+          <td>
+            <div class="member-name-cell">
+              <strong>${member}${isCurrentUser ? ' (나)' : ''}</strong>
+              <button class="edit-btn" onclick="editMemberSchedule('${member}')">수정</button>
             </div>
+          </td>`;
 
-            <button class="modal-btn modal-btn-primary" onclick="addNewMember()" style="width: 100%; margin-bottom: 24px;">멤버 추가</button>
-
-            <div class="modal-members-list" id="modalMembersList"></div>
-
-            <div class="modal-actions">
-                <button class="modal-btn modal-btn-secondary" onclick="closeManageModal()">닫기</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Google Apps Script Web App URL
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2CCEL-5_-BHuSrVxEzSyQGmoFEfXyPGniQ_spVDmeBmtxoBajTboZuo_xK9ngyHIv7A/exec';
-
-        // 멤버 목록
-        let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
-
-        let selectedMember = null;
-        let selectedDates = [];
-        let availability = {};
-        let submittedMembers = {}; // 입력을 완료한 멤버 추적
-
-        // 이번 주 수, 목, 금 날짜 계산 (요일 기반)
-        function getThisWeekDates() {
-            const today = new Date();
-            const currentDay = today.getDay(); // 0: 일요일, 1: 월요일, ...
-            const dates = [];
-
-            // 수요일(3), 목요일(4), 금요일(5)
-            const targetDays = [
-                { day: 3, name: '수요일', key: 'wed' },
-                { day: 4, name: '목요일', key: 'thu' },
-                { day: 5, name: '금요일', key: 'fri' }
-            ];
-
-            targetDays.forEach(target => {
-                const diff = target.day - currentDay;
-                const targetDate = new Date(today);
-                targetDate.setDate(today.getDate() + diff);
-
-                const month = targetDate.getMonth() + 1;
-                const day = targetDate.getDate();
-
-                dates.push({
-                    value: target.key, // 요일 키로 변경 (wed, thu, fri)
-                    display: `${month}월 ${day}일`,
-                    dayName: target.name
-                });
-            });
-
-            return dates;
+        if (!hasSubmitted) {
+          // 미입력 상태
+          html += `<td colspan="${allDates.length}" class="not-submitted-cell">미입력</td>`;
+        } else {
+          // 입력 완료 상태
+          allDates.forEach(date => {
+            const isAvailable = availability[date] && availability[date][member];
+            html += `<td>${isAvailable ? '✓' : '-'}</td>`;
+          });
         }
 
-        const weekDates = getThisWeekDates();
+        html += '</tr>';
+      });
 
-        // 로딩 오버레이 숨기기
-        function hideLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                overlay.classList.add('hidden');
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                }, 300);
-            }
-        }
+      // 참석 가능 인원 합계
+      html += '<tr style="background: #f8f9fa; font-weight: bold;"><td>참석 가능 인원</td>';
+      allDates.forEach(date => {
+        html += `<td class="attendance-count">${dateCounts[date]} / ${allMembers.length}</td>`;
+      });
+      html += '</tr>';
 
-        // Google Sheets에서 데이터 로드
-        async function loadData() {
-            // 먼저 초기 렌더링 (빠른 화면 표시)
-            selectedMember = null;
-            selectedDates = [];
-            renderMembers();
-            renderDates();
-            renderScheduleTable();
-            updateBestDate();
+      html += '</tbody></table>';
 
-            // 로딩 오버레이 숨기기
-            hideLoading();
+      container.innerHTML = html;
+    }
 
-            // 백그라운드에서 데이터 로드
-            try {
-                const response = await fetch(SCRIPT_URL + '?action=load', {
-                    cache: 'no-cache'
-                });
-                const data = await response.json();
+    // 최적의 날짜 계산 및 표시
+    function updateBestDate() {
+      const resultBox = document.getElementById('resultBox');
+      const allDates = weekDates.map(d => d.value);
 
-                if (data.success) {
-                    if (data.members) allMembers = data.members;
-                    if (data.availability) availability = data.availability;
-                    if (data.submittedMembers) submittedMembers = data.submittedMembers;
+      // 각 날짜별 참석 가능 인원 계산
+      let maxCount = 0;
+      let bestDates = [];
 
-                    // 데이터 로드 후 다시 렌더링
-                    renderMembers();
-                    renderScheduleTable();
-                    updateBestDate();
-                }
-            } catch (error) {
-                console.error('데이터 로드 실패:', error);
-            }
-
-            // 10초마다 자동 새로고침 (다른 사용자의 변경사항 감지)
-            setInterval(async () => {
-                try {
-                    const response = await fetch(SCRIPT_URL + '?action=load', {
-                        cache: 'no-cache'
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        if (data.members) allMembers = data.members;
-                        if (data.availability) availability = data.availability;
-                        if (data.submittedMembers) submittedMembers = data.submittedMembers;
-
-                        renderMembers();
-                        renderScheduleTable();
-                        updateBestDate();
-                    }
-                } catch (error) {
-                    console.error('자동 새로고침 실패:', error);
-                }
-            }, 10000); // 5초에서 10초로 변경 (서버 부하 감소)
-        }
-
-        // Google Sheets에 데이터 저장
-        async function saveData() {
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'save',
-                        members: allMembers,
-                        availability: availability,
-                        submittedMembers: submittedMembers
-                    })
-                });
-
-                console.log('데이터 저장 완료');
-            } catch (error) {
-                console.error('데이터 저장 실패:', error);
-            }
-        }
-
-        // 멤버 관리 모달 열기
-        function openManageModal() {
-            document.getElementById('manageModal').classList.add('active');
-            renderModalMembers();
-        }
-
-        // 멤버 관리 모달 닫기
-        function closeManageModal() {
-            document.getElementById('manageModal').classList.remove('active');
-            document.getElementById('newMemberInput').value = '';
-        }
-
-        // 모달 멤버 목록 렌더링
-        function renderModalMembers() {
-            const container = document.getElementById('modalMembersList');
-
-            if (allMembers.length === 0) {
-                container.innerHTML = '<div class="empty-state">등록된 멤버가 없습니다.</div>';
-                return;
-            }
-
-            container.innerHTML = allMembers.map(member => `
-                <div class="modal-member-item">
-                    <span class="modal-member-name">${member}</span>
-                    <button class="delete-btn" onclick="deleteMember('${member}')">삭제</button>
-                </div>
-            `).join('');
-        }
-
-        // 새 멤버 추가
-        function addNewMember() {
-            const input = document.getElementById('newMemberInput');
-            const name = input.value.trim();
-
-            if (!name) {
-                alert('멤버 이름을 입력해주세요.');
-                return;
-            }
-
-            if (allMembers.includes(name)) {
-                alert('이미 등록된 멤버입니다.');
-                return;
-            }
-
-            allMembers.push(name);
-            input.value = '';
-            saveData();
-            renderModalMembers();
-            renderMembers();
-            renderScheduleTable();
-            updateBestDate();
-        }
-
-        // 멤버 삭제
-        function deleteMember(name) {
-            if (!confirm(`${name}을(를) 삭제하시겠습니까?\n해당 멤버의 모든 참석 정보가 삭제됩니다.`)) {
-                return;
-            }
-
-            allMembers = allMembers.filter(m => m !== name);
-
-            // 선택된 멤버였다면 선택 해제
-            if (selectedMember === name) {
-                selectedMember = null;
-            }
-
-            // 해당 멤버의 참석 정보 삭제
-            for (let date in availability) {
-                if (availability[date][name]) {
-                    delete availability[date][name];
-                }
-            }
-
-            // 입력 완료 상태 삭제
-            if (submittedMembers[name]) {
-                delete submittedMembers[name];
-            }
-
-            saveData();
-            renderModalMembers();
-            renderMembers();
-            renderScheduleTable();
-            updateBestDate();
-        }
-
-        // Enter 키로 멤버 추가
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('newMemberInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    addNewMember();
-                }
-            });
-
-            // 모달 외부 클릭시 닫기
-            document.getElementById('manageModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeManageModal();
-                }
-            });
+      allDates.forEach(date => {
+        let count = 0;
+        allMembers.forEach(member => {
+          if (availability[date] && availability[date][member]) {
+            count++;
+          }
         });
 
-        // 멤버 선택
-        function selectMember(name) {
-            selectedMember = name;
-            updateSubmitButton();
-            updateUnavailableButton();
-            renderMembers();
+        if (count > maxCount) {
+          maxCount = count;
+          bestDates = [date];
+        } else if (count === maxCount && count > 0) {
+          bestDates.push(date);
         }
+      });
 
-        // 멤버 목록 렌더링
-        function renderMembers() {
-            const container = document.getElementById('membersList');
+      if (maxCount === 0) {
+        resultBox.innerHTML = `
+          <div class="result-box">
+            <h3>아직 참석 가능한 멤버가 없습니다</h3>
+            <p class="attendance-text">참석 가능한 날짜를 선택해주세요.</p>
+          </div>
+        `;
+        return;
+      }
 
-            container.innerHTML = allMembers.map(member => `
-                <div class="member-card ${selectedMember === member ? 'selected' : ''}" onclick="selectMember('${member}')">
-                    <span class="member-name">${member}</span>
-                </div>
-            `).join('');
+      const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
+
+      resultBox.innerHTML = `
+        <div class="result-box">
+          <h3>최적의 모임 날짜</h3>
+          <div class="best-date-text">${bestDatesText}</div>
+          <p class="attendance-text">${maxCount}명 / ${allMembers.length}명 참석 가능</p>
+          <button class="copy-btn" onclick="copyToClipboard()">📋 일정 복사</button>
+        </div>
+      `;
+    }
+
+    // 입력 완료 버튼 활성화/비활성화 업데이트
+    function updateSubmitButton() {
+      const submitBtn = document.getElementById('submitBtn');
+
+      // 멤버가 선택되고 최소 1개 이상의 날짜가 선택되었을 때 활성화
+      if (selectedMember && selectedDates.length > 0) {
+        submitBtn.disabled = false;
+      } else {
+        submitBtn.disabled = true;
+      }
+    }
+
+    // 모든 날짜 불가능 버튼 활성화/비활성화 업데이트
+    function updateUnavailableButton() {
+      // renderDates()에서 처리하므로 별도 업데이트 불필요
+    }
+
+    // 모든 날짜 불가능 토글
+    function toggleUnavailable() {
+      if (!selectedMember) {
+        alert('먼저 본인을 선택해주세요.');
+        return;
+      }
+
+      const unavailableCard = document.getElementById('unavailableCard');
+      const isCurrentlySelected = unavailableCard.classList.contains('selected');
+
+      if (isCurrentlySelected) {
+        // 선택 해제
+        unavailableCard.classList.remove('selected');
+        updateSubmitButton();
+      } else {
+        // 모든 날짜 선택 해제하고 불가능 선택
+        selectedDates = [];
+        unavailableCard.classList.add('selected');
+
+        // 입력 완료 버튼 활성화
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = false;
+      }
+
+      renderDates();
+    }
+
+    // 입력 완료 버튼 클릭 시 실행
+    function submitSelection() {
+      if (!selectedMember) {
+        return;
+      }
+
+      // 먼저 해당 멤버의 기존 참석 정보를 모두 삭제
+      weekDates.forEach(date => {
+        if (availability[date.value] && availability[date.value][selectedMember]) {
+          delete availability[date.value][selectedMember];
         }
+      });
 
-        // 날짜 토글
-        function toggleDate(dateValue) {
-            if (!selectedMember) {
-                alert('먼저 본인을 선택해주세요.');
-                return;
+      // 선택한 날짜를 availability에 저장 (날짜가 없으면 모두 불가능)
+      selectedDates.forEach(dateValue => {
+        if (!availability[dateValue]) {
+          availability[dateValue] = {};
+        }
+        availability[dateValue][selectedMember] = true;
+      });
+
+      // 입력 완료 상태로 표시
+      submittedMembers[selectedMember] = true;
+
+      saveData();
+
+      // 선택 초기화
+      selectedMember = null;
+      selectedDates = [];
+
+      renderMembers();
+      renderDates();
+      renderScheduleTable();
+      updateBestDate();
+      updateSubmitButton();
+      updateUnavailableButton();
+
+      alert('입력이 완료되었습니다!');
+    }
+
+    // 멤버 일정 수정 기능
+    function editMemberSchedule(memberName) {
+      // 해당 멤버로 선택
+      selectedMember = memberName;
+
+      // 현재 해당 멤버가 선택한 날짜들을 가져옴
+      selectedDates = [];
+      weekDates.forEach(date => {
+        if (availability[date.value] && availability[date.value][memberName]) {
+          selectedDates.push(date.value);
+        }
+      });
+
+      // UI 업데이트
+      renderMembers();
+      renderDates();
+      updateSubmitButton();
+      updateUnavailableButton();
+
+      // 페이지 상단으로 스크롤
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      alert(`${memberName}의 일정을 수정합니다.\n날짜를 다시 선택한 후 "입력 완료"를 클릭하세요.`);
+    }
+
+    // 클립보드에 일정 복사
+    async function copyToClipboard() {
+      // 최적의 날짜 계산
+      const allDates = weekDates.map(d => d.value);
+      let maxCount = 0;
+      let bestDates = [];
+
+      allDates.forEach(date => {
+        let count = 0;
+        allMembers.forEach(member => {
+          if (availability[date] && availability[date][member]) {
+            count++;
+          }
+        });
+
+        if (count > maxCount) {
+          maxCount = count;
+          bestDates = [date];
+        } else if (count === maxCount && count > 0) {
+          bestDates.push(date);
+        }
+      });
+
+      if (maxCount === 0) {
+        alert('아직 참석 가능한 멤버가 없습니다.');
+        return;
+      }
+
+      const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
+
+      // 참석 가능한 멤버 목록
+      const attendeesList = [];
+      bestDates.forEach(date => {
+        allMembers.forEach(member => {
+          if (availability[date] && availability[date][member]) {
+            if (!attendeesList.includes(member)) {
+              attendeesList.push(member);
             }
+          }
+        });
+      });
 
-            const index = selectedDates.indexOf(dateValue);
-            if (index > -1) {
-                selectedDates.splice(index, 1);
-            } else {
-                selectedDates.push(dateValue);
-                // 날짜를 선택하면 "모든 날짜 불가능" 선택 해제
-                const unavailableCard = document.getElementById('unavailableCard');
-                if (unavailableCard) {
-                    unavailableCard.classList.remove('selected');
-                }
-            }
-
-            updateSubmitButton();
-            renderDates();
-        }
-
-        // 날짜 목록 렌더링
-        function renderDates() {
-            const container = document.getElementById('datesListContainer');
-
-            const datesHtml = weekDates.map(date => `
-                <div class="date-card ${selectedDates.includes(date.value) ? 'selected' : ''}" onclick="toggleDate('${date.value}')">
-                    <div class="date-text">${date.display}</div>
-                    <div class="day-text">${date.dayName}</div>
-                </div>
-            `).join('');
-
-            const isUnavailableSelected = selectedMember && selectedDates.length === 0 && document.getElementById('unavailableCard')?.classList.contains('selected');
-            const unavailableHtml = `
-                <div class="unavailable-card ${!selectedMember ? 'disabled' : ''} ${isUnavailableSelected ? 'selected' : ''}"
-                     id="unavailableCard"
-                     onclick="toggleUnavailable()">
-                    <div class="unavailable-text">모든 날짜<br>불가능</div>
-                </div>
-            `;
-
-            container.innerHTML = datesHtml + unavailableHtml;
-        }
-
-        // 날짜 형식 변환 (요일 키 기반)
-        function formatDate(dayKey) {
-            // 요일 키에 해당하는 실제 날짜 찾기
-            const dateInfo = weekDates.find(d => d.value === dayKey);
-            if (dateInfo) {
-                return `${dateInfo.display} (${dateInfo.dayName})`;
-            }
-            return dayKey; // fallback
-        }
-
-        // 스케줄 테이블 렌더링
-        function renderScheduleTable() {
-            const container = document.getElementById('scheduleTableContainer');
-
-            // 모든 날짜에 대한 참석 현황 표시 (선택하지 않은 날짜도 포함)
-            const allDates = weekDates.map(d => d.value);
-
-            // 각 날짜별 참석 가능 인원 계산
-            const dateCounts = {};
-            allDates.forEach(date => {
-                dateCounts[date] = 0;
-                allMembers.forEach(member => {
-                    if (availability[date] && availability[date][member]) {
-                        dateCounts[date]++;
-                    }
-                });
-            });
-
-            let html = '<table class="schedule-table">';
-
-            // 헤더
-            html += '<thead><tr><th>멤버</th>';
-            allDates.forEach(date => {
-                html += `<th class="date-header">${formatDate(date)}</th>`;
-            });
-            html += '</tr></thead>';
-
-            // 멤버별 참석 여부
-            html += '<tbody>';
-            allMembers.forEach(member => {
-                const isCurrentUser = member === selectedMember;
-                const hasSubmitted = submittedMembers[member];
-
-                let rowStyle = '';
-                if (isCurrentUser) {
-                    rowStyle = 'background: #fff3cd;';
-                } else if (!hasSubmitted) {
-                    rowStyle = 'class="not-submitted-row"';
-                }
-
-                html += `<tr ${rowStyle}>
-                    <td>
-                        <div class="member-name-cell">
-                            <strong>${member}${isCurrentUser ? ' (나)' : ''}</strong>
-                            <button class="edit-btn" onclick="editMemberSchedule('${member}')">수정</button>
-                        </div>
-                    </td>`;
-
-                if (!hasSubmitted) {
-                    // 미입력 상태
-                    html += `<td colspan="${allDates.length}" class="not-submitted-cell">미입력</td>`;
-                } else {
-                    // 입력 완료 상태
-                    allDates.forEach(date => {
-                        const isAvailable = availability[date] && availability[date][member];
-                        html += `<td>${isAvailable ? '✓' : '-'}</td>`;
-                    });
-                }
-                html += '</tr>';
-            });
-
-            // 참석 가능 인원 합계
-            html += '<tr style="background: #f8f9fa; font-weight: bold;"><td>참석 가능 인원</td>';
-            allDates.forEach(date => {
-                html += `<td class="attendance-count">${dateCounts[date]} / ${allMembers.length}</td>`;
-            });
-            html += '</tr>';
-
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
-
-        // 최적의 날짜 계산 및 표시
-        function updateBestDate() {
-            const resultBox = document.getElementById('resultBox');
-
-            const allDates = weekDates.map(d => d.value);
-
-            // 각 날짜별 참석 가능 인원 계산
-            let maxCount = 0;
-            let bestDates = [];
-
-            allDates.forEach(date => {
-                let count = 0;
-                allMembers.forEach(member => {
-                    if (availability[date] && availability[date][member]) {
-                        count++;
-                    }
-                });
-
-                if (count > maxCount) {
-                    maxCount = count;
-                    bestDates = [date];
-                } else if (count === maxCount && count > 0) {
-                    bestDates.push(date);
-                }
-            });
-
-            if (maxCount === 0) {
-                resultBox.innerHTML = `
-                    <div class="result-box">
-                        <h3>아직 참석 가능한 멤버가 없습니다</h3>
-                        <p class="attendance-text">참석 가능한 날짜를 선택해주세요.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
-
-            resultBox.innerHTML = `
-                <div class="result-box">
-                    <h3>최적의 모임 날짜</h3>
-                    <div class="best-date-text">${bestDatesText}</div>
-                    <p class="attendance-text">${maxCount}명 / ${allMembers.length}명 참석 가능</p>
-                    <button class="copy-btn" onclick="copyToClipboard()">📋 일정 복사</button>
-                </div>
-            `;
-        }
-
-        // 입력 완료 버튼 활성화/비활성화 업데이트
-        function updateSubmitButton() {
-            const submitBtn = document.getElementById('submitBtn');
-            // 멤버가 선택되고 최소 1개 이상의 날짜가 선택되었을 때 활성화
-            if (selectedMember && selectedDates.length > 0) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
-            }
-        }
-
-        // 모든 날짜 불가능 버튼 활성화/비활성화 업데이트
-        function updateUnavailableButton() {
-            // renderDates()에서 처리하므로 별도 업데이트 불필요
-        }
-
-        // 모든 날짜 불가능 토글
-        function toggleUnavailable() {
-            if (!selectedMember) {
-                alert('먼저 본인을 선택해주세요.');
-                return;
-            }
-
-            const unavailableCard = document.getElementById('unavailableCard');
-            const isCurrentlySelected = unavailableCard.classList.contains('selected');
-
-            if (isCurrentlySelected) {
-                // 선택 해제
-                unavailableCard.classList.remove('selected');
-                updateSubmitButton();
-            } else {
-                // 모든 날짜 선택 해제하고 불가능 선택
-                selectedDates = [];
-                unavailableCard.classList.add('selected');
-
-                // 입력 완료 버튼 활성화
-                const submitBtn = document.getElementById('submitBtn');
-                submitBtn.disabled = false;
-            }
-
-            renderDates();
-        }
-
-        // 입력 완료 버튼 클릭 시 실행
-        function submitSelection() {
-            if (!selectedMember) {
-                return;
-            }
-
-            // 먼저 해당 멤버의 기존 참석 정보를 모두 삭제
-            weekDates.forEach(date => {
-                if (availability[date.value] && availability[date.value][selectedMember]) {
-                    delete availability[date.value][selectedMember];
-                }
-            });
-
-            // 선택한 날짜를 availability에 저장 (날짜가 없으면 모두 불가능)
-            selectedDates.forEach(dateValue => {
-                if (!availability[dateValue]) {
-                    availability[dateValue] = {};
-                }
-                availability[dateValue][selectedMember] = true;
-            });
-
-            // 입력 완료 상태로 표시
-            submittedMembers[selectedMember] = true;
-
-            saveData();
-
-            // 선택 초기화
-            selectedMember = null;
-            selectedDates = [];
-
-            renderMembers();
-            renderDates();
-            renderScheduleTable();
-            updateBestDate();
-            updateSubmitButton();
-            updateUnavailableButton();
-
-            alert('입력이 완료되었습니다!');
-        }
-
-        // 멤버 일정 수정 기능
-        function editMemberSchedule(memberName) {
-            // 해당 멤버로 선택
-            selectedMember = memberName;
-
-            // 현재 해당 멤버가 선택한 날짜들을 가져옴
-            selectedDates = [];
-            weekDates.forEach(date => {
-                if (availability[date.value] && availability[date.value][memberName]) {
-                    selectedDates.push(date.value);
-                }
-            });
-
-            // UI 업데이트
-            renderMembers();
-            renderDates();
-            updateSubmitButton();
-            updateUnavailableButton();
-
-            // 페이지 상단으로 스크롤
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            alert(`${memberName}의 일정을 수정합니다.\n날짜를 다시 선택한 후 "입력 완료"를 클릭하세요.`);
-        }
-
-        // 클립보드에 일정 복사
-        async function copyToClipboard() {
-            // 최적의 날짜 계산
-            const allDates = weekDates.map(d => d.value);
-            let maxCount = 0;
-            let bestDates = [];
-
-            allDates.forEach(date => {
-                let count = 0;
-                allMembers.forEach(member => {
-                    if (availability[date] && availability[date][member]) {
-                        count++;
-                    }
-                });
-
-                if (count > maxCount) {
-                    maxCount = count;
-                    bestDates = [date];
-                } else if (count === maxCount && count > 0) {
-                    bestDates.push(date);
-                }
-            });
-
-            if (maxCount === 0) {
-                alert('아직 참석 가능한 멤버가 없습니다.');
-                return;
-            }
-
-            const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
-
-            // 참석 가능한 멤버 목록
-            const attendeesList = [];
-            bestDates.forEach(date => {
-                allMembers.forEach(member => {
-                    if (availability[date] && availability[date][member]) {
-                        if (!attendeesList.includes(member)) {
-                            attendeesList.push(member);
-                        }
-                    }
-                });
-            });
-
-            // 복사할 텍스트 생성
-            const textToCopy = `📅 AI Study Crew 모임 일정
-
+      // 복사할 텍스트 생성
+      const textToCopy = `📅 AI Study Crew 모임 일정
 날짜: ${bestDatesText}
 참석 인원: ${maxCount}명 / ${allMembers.length}명
 참석 가능 멤버: ${attendeesList.join(', ')}`;
 
-            try {
-                await navigator.clipboard.writeText(textToCopy);
-                alert('일정이 클립보드에 복사되었습니다! 📋\n원하는 곳에 붙여넣기(Ctrl+V)하세요.');
-            } catch (error) {
-                // 클립보드 API가 지원되지 않는 경우 fallback
-                const textarea = document.createElement('textarea');
-                textarea.value = textToCopy;
-                textarea.style.position = 'fixed';
-                textarea.style.opacity = '0';
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    alert('일정이 클립보드에 복사되었습니다! 📋\n원하는 곳에 붙여넣기(Ctrl+V)하세요.');
-                } catch (err) {
-                    alert('클립보드 복사에 실패했습니다.');
-                    console.error('복사 오류:', err);
-                }
-                document.body.removeChild(textarea);
-            }
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        alert('일정이 클립보드에 복사되었습니다! 📋\n원하는 곳에 붙여넣기(Ctrl+V)하세요.');
+      } catch (error) {
+        // 클립보드 API가 지원되지 않는 경우 fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = textToCopy;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+          document.execCommand('copy');
+          alert('일정이 클립보드에 복사되었습니다! 📋\n원하는 곳에 붙여넣기(Ctrl+V)하세요.');
+        } catch (err) {
+          alert('클립보드 복사에 실패했습니다.');
+          console.error('복사 오류:', err);
         }
 
-        // 페이지 로드 시 데이터 로드
-        loadData();
-    </script>
+        document.body.removeChild(textarea);
+      }
+    }
+
+    // 페이지 로드 시 데이터 로드
+    loadData();
+  </script>
 </body>
 </html>
