@@ -622,18 +622,18 @@
       return year + '-W' + (weekNo < 10 ? '0' : '') + weekNo;
     }
 
-    // 현재 주의 수요일 기준 주차 ID
+    // 현재 주의 월요일 기준 주차 ID
     function getCurrentWeekId() {
       const today = new Date();
       const currentDay = today.getDay(); // 0=일, 1=월, ..., 6=토
-      const diffToWed = 3 - currentDay;
-      const wed = new Date(today);
+      const diffToMon = 1 - currentDay;
+      const mon = new Date(today);
       if (currentDay === 0) {
-        wed.setDate(today.getDate() - 4); // 일요일: 지난 수요일
+        mon.setDate(today.getDate() - 6); // 일요일: 지난 월요일
       } else {
-        wed.setDate(today.getDate() + diffToWed);
+        mon.setDate(today.getDate() + diffToMon);
       }
-      return getISOWeekString(wed);
+      return getISOWeekString(mon);
     }
 
     // 이번 주 수, 목, 금 날짜 계산 (요일 기반)
