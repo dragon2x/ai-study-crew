@@ -606,6 +606,9 @@
     let selectedDates = [];
     let availability = {};
     let submittedMembers = {}; // 입력을 완료한 멤버 추적
+    let currentSavingMember = null;
+    let currentSavingDates = [];
+    let currentSavingUnavailable = false;
 
     // ============================================
     // 주차 ID 계산 (ISO 8601)
@@ -734,7 +737,7 @@
       }, 10000);
     }
 
-    // Google Sheets에 데이터 저장 (weekId 포함)
+    // Google Sheets에 데이터 저장 (멤버별 병합 방식)
     async function saveData() {
       try {
         const weekId = getCurrentWeekId();
@@ -748,13 +751,37 @@
             action: 'save',
             weekId: weekId,
             members: allMembers,
-            availability: availability,
-            submittedMembers: submittedMembers
+            memberName: currentSavingMember,
+            memberDates: currentSavingDates,
+            isUnavailable: currentSavingUnavailable
           })
         });
-        console.log('데이터 저장 완료 (주차: ' + weekId + ')');
+        console.log('데이터 저장 완료 (주차: ' + weekId + ', 멤버: ' + currentSavingMember + ')');
       } catch (error) {
         console.error('데이터 저장 실패:', error);
+      }
+    }
+
+    // 멤버 목록만 저장 (추가/삭제 시)
+    async function saveMembersOnly(deletedMember) {
+      try {
+        const weekId = getCurrentWeekId();
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'saveMembers',
+            weekId: weekId,
+            members: allMembers,
+            deletedMember: deletedMember || null
+          })
+        });
+        console.log('멤버 목록 저장 완료');
+      } catch (error) {
+        console.error('멤버 목록 저장 실패:', error);
       }
     }
 
@@ -803,7 +830,7 @@
 
       allMembers.push(name);
       input.value = '';
-      saveData();
+      saveMembersOnly();
       renderModalMembers();
       renderMembers();
       renderScheduleTable();
@@ -835,7 +862,7 @@
         delete submittedMembers[name];
       }
 
-      saveData();
+      saveMembersOnly(name);
       renderModalMembers();
       renderMembers();
       renderScheduleTable();
@@ -1100,14 +1127,18 @@
         return;
       }
 
-      // 먼저 해당 멤버의 기존 참석 정보를 모두 삭제
+      // 저장할 멤버 정보를 임시 변수에 저장 (saveData에서 서버로 전송)
+      currentSavingMember = selectedMember;
+      currentSavingDates = [...selectedDates];
+      currentSavingUnavailable = selectedDates.length === 0;
+
+      // 로컬 상태도 업데이트 (즉시 UI 반영용)
       weekDates.forEach(date => {
         if (availability[date.value] && availability[date.value][selectedMember]) {
           delete availability[date.value][selectedMember];
         }
       });
 
-      // 선택한 날짜를 availability에 저장 (날짜가 없으면 모두 불가능)
       selectedDates.forEach(dateValue => {
         if (!availability[dateValue]) {
           availability[dateValue] = {};
