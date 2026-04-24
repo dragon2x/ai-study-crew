@@ -1,1268 +1,580 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Study Crew - 일정 조율</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-      background: #f5f5f7;
-      min-height: 100vh;
-      padding: 60px 20px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .container {
-      max-width: 980px;
-      margin: 0 auto;
-    }
-
-    h1 {
-      color: #1d1d1f;
-      margin-bottom: 8px;
-      font-size: 56px;
-      font-weight: 600;
-      letter-spacing: -0.015em;
-      text-align: center;
-    }
-
-    .subtitle {
-      color: #6e6e73;
-      margin-bottom: 60px;
-      font-size: 21px;
-      font-weight: 400;
-      text-align: center;
-      letter-spacing: 0.011em;
-    }
-
-    .section {
-      margin-bottom: 80px;
-    }
-
-    .section h2 {
-      color: #1d1d1f;
-      margin-bottom: 32px;
-      font-size: 32px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
-      text-align: center;
-    }
-
-    .members-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .member-card {
-      background: white;
-      padding: 24px 16px;
-      border-radius: 18px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border: 2px solid #d2d2d7;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .member-card:hover {
-      border-color: #0071e3;
-      transform: scale(1.02);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    }
-
-    .member-card.selected {
-      background: #0071e3;
-      border-color: #0071e3;
-      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
-    }
-
-    .member-card.selected .member-name {
-      color: white;
-    }
-
-    .member-name {
-      font-weight: 500;
-      color: #1d1d1f;
-      font-size: 17px;
-      letter-spacing: -0.022em;
-    }
-
-    .schedule-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      background: white;
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    }
-
-    .schedule-table th,
-    .schedule-table td {
-      padding: 16px 20px;
-      text-align: center;
-      border-bottom: 1px solid #d2d2d7;
-    }
-
-    .schedule-table th {
-      background: #fbfbfd;
-      color: #1d1d1f;
-      font-weight: 600;
-      font-size: 15px;
-      letter-spacing: -0.016em;
-    }
-
-    .schedule-table tbody tr:hover {
-      background: #f5f5f7;
-    }
-
-    .schedule-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    .date-header {
-      background: #fbfbfd !important;
-    }
-
-    .attendance-count {
-      font-size: 17px;
-      font-weight: 600;
-      color: #0071e3;
-    }
-
-    .result-box {
-      background: white;
-      padding: 48px 32px;
-      border-radius: 18px;
-      margin-top: 60px;
-      text-align: center;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    }
-
-    .result-box h3 {
-      font-size: 21px;
-      margin-bottom: 16px;
-      color: #6e6e73;
-      font-weight: 500;
-    }
-
-    .result-box .best-date-text {
-      font-size: 40px;
-      font-weight: 600;
-      margin: 16px 0;
-      color: #1d1d1f;
-      letter-spacing: -0.015em;
-    }
-
-    .result-box .attendance-text {
-      font-size: 19px;
-      color: #6e6e73;
-      font-weight: 400;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 40px;
-      color: #86868b;
-      font-size: 17px;
-    }
-
-    .date-input-group {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .date-card {
-      background: white;
-      padding: 28px 40px;
-      border-radius: 18px;
-      border: 2px solid #d2d2d7;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      text-align: center;
-      min-width: 140px;
-    }
-
-    .date-card:hover {
-      border-color: #0071e3;
-      transform: scale(1.02);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    }
-
-    .date-card.selected {
-      background: #0071e3;
-      border-color: #0071e3;
-      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
-    }
-
-    .date-card.selected .date-text {
-      color: white;
-    }
-
-    .date-card.selected .day-text {
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .date-text {
-      font-weight: 600;
-      font-size: 28px;
-      color: #1d1d1f;
-      margin-bottom: 4px;
-      letter-spacing: -0.015em;
-    }
-
-    .day-text {
-      font-size: 15px;
-      color: #86868b;
-      font-weight: 400;
-    }
-
-    .manage-section {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .manage-btn {
-      background: transparent;
-      color: #0071e3;
-      border: 2px solid #0071e3;
-      padding: 10px 24px;
-      font-size: 15px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .manage-btn:hover {
-      background: #0071e3;
-      color: white;
-      transform: scale(1.02);
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: white;
-      border-radius: 18px;
-      padding: 40px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 24px;
-      color: #1d1d1f;
-    }
-
-    .modal-input-group {
-      margin-bottom: 20px;
-    }
-
-    .modal-input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid #d2d2d7;
-      border-radius: 12px;
-      font-size: 17px;
-      transition: all 0.3s;
-    }
-
-    .modal-input:focus {
-      outline: none;
-      border-color: #0071e3;
-    }
-
-    .modal-members-list {
-      margin-bottom: 24px;
-    }
-
-    .modal-member-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      margin-bottom: 8px;
-      background: #f5f5f7;
-      border-radius: 12px;
-    }
-
-    .modal-member-name {
-      font-size: 17px;
-      color: #1d1d1f;
-    }
-
-    .delete-btn {
-      background: #ff3b30;
-      color: white;
-      border: none;
-      padding: 6px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .delete-btn:hover {
-      background: #e02d1f;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .modal-btn {
-      flex: 1;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 17px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .modal-btn-primary {
-      background: #0071e3;
-      color: white;
-      border: none;
-    }
-
-    .modal-btn-primary:hover {
-      background: #0062cc;
-    }
-
-    .modal-btn-secondary {
-      background: transparent;
-      color: #0071e3;
-      border: 2px solid #0071e3;
-    }
-
-    .modal-btn-secondary:hover {
-      background: #f5f5f7;
-    }
-
-    .submit-section {
-      text-align: center;
-      margin-top: 40px;
-      margin-bottom: 80px;
-    }
-
-    .submit-btn {
-      background: #0071e3;
-      color: white;
-      border: none;
-      padding: 16px 48px;
-      font-size: 17px;
-      font-weight: 600;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
-    }
-
-    .submit-btn:hover {
-      background: #0062cc;
-      transform: scale(1.02);
-    }
-
-    .submit-btn:disabled {
-      background: #d2d2d7;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    .edit-btn {
-      background: transparent;
-      color: #0071e3;
-      border: 2px solid #0071e3;
-      padding: 8px 20px;
-      font-size: 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-      margin-left: 8px;
-    }
-
-    .edit-btn:hover {
-      background: #0071e3;
-      color: white;
-      transform: scale(1.02);
-    }
-
-    .member-name-cell {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .not-submitted-row {
-      background: #f5f5f7 !important;
-      opacity: 0.7;
-    }
-
-    .not-submitted-cell {
-      color: #86868b;
-      font-style: italic;
-    }
-
-    .unavailable-card {
-      background: white;
-      padding: 28px 40px;
-      border-radius: 18px;
-      border: 2px solid #ff3b30;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      text-align: center;
-      min-width: 140px;
-    }
-
-    .unavailable-card:hover:not(.disabled) {
-      border-color: #ff3b30;
-      transform: scale(1.02);
-      box-shadow: 0 4px 16px rgba(255, 59, 48, 0.25);
-    }
-
-    .unavailable-card.selected {
-      background: #ff3b30;
-      border-color: #ff3b30;
-      box-shadow: 0 4px 16px rgba(255, 59, 48, 0.4);
-    }
-
-    .unavailable-card.selected .unavailable-text {
-      color: white;
-    }
-
-    .unavailable-card.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      border-color: #d2d2d7;
-    }
-
-    .unavailable-text {
-      font-weight: 600;
-      font-size: 17px;
-      color: #ff3b30;
-      letter-spacing: -0.015em;
-    }
-
-    .copy-btn {
-      background: #34c759;
-      color: white;
-      border: none;
-      padding: 12px 28px;
-      font-size: 15px;
-      font-weight: 600;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-      margin-top: 20px;
-      margin-left: 12px;
-    }
-
-    .copy-btn:hover {
-      background: #2da84a;
-      transform: scale(1.02);
-    }
-
-    .copy-btn:disabled {
-      background: #d2d2d7;
-      cursor: not-allowed;
-    }
-
-    /* 로딩 인디케이터 */
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(245, 245, 247, 0.95);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      opacity: 1;
-      transition: opacity 0.3s ease;
-    }
-
-    .loading-overlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid #d2d2d7;
-      border-top: 4px solid #0071e3;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      margin-left: 20px;
-      font-size: 17px;
-      color: #1d1d1f;
-      font-weight: 500;
-    }
-  </style>
-</head>
-<body>
-  <!-- 로딩 오버레이 -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">데이터 불러오는 중...</div>
-  </div>
-
-  <div class="container">
-    <h1>AI Study Crew</h1>
-    <p class="subtitle">매주 모임 일정을 쉽게 조율하세요.</p>
-
-    <div class="manage-section">
-      <button class="manage-btn" onclick="openManageModal()">멤버 관리</button>
-    </div>
-
-    <div class="section">
-      <h2>본인을 선택해주세요</h2>
-      <div class="members-list" id="membersList"></div>
-    </div>
-
-    <div class="section">
-      <h2>참석 가능한 날짜를 선택해주세요</h2>
-      <div class="date-input-group" id="datesListContainer"></div>
-    </div>
-
-    <div class="submit-section">
-      <button class="submit-btn" id="submitBtn" onclick="submitSelection()" disabled>입력 완료</button>
-    </div>
-
-    <div class="section">
-      <h2>참석 현황</h2>
-      <div id="scheduleTableContainer"></div>
-    </div>
-
-    <div id="resultBox"></div>
-  </div>
-
-  <!-- 멤버 관리 모달 -->
-  <div class="modal" id="manageModal">
-    <div class="modal-content">
-      <h2 class="modal-header">멤버 관리</h2>
-      <div class="modal-input-group">
-        <input type="text" class="modal-input" id="newMemberInput" placeholder="새 멤버 이름" />
-      </div>
-      <button class="modal-btn modal-btn-primary" onclick="addNewMember()" style="width: 100%; margin-bottom: 24px;">멤버 추가</button>
-      <div class="modal-members-list" id="modalMembersList"></div>
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-secondary" onclick="closeManageModal()">닫기</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Google Apps Script Web App URL
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2CCEL-5_-BHuSrVxEzSyQGmoFEfXyPGniQ_spVDmeBmtxoBajTboZuo_xK9ngyHIv7A/exec';
-
-    // 멤버 목록
-    let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
-    let selectedMember = null;
-    let selectedDates = [];
-    let availability = {};
-    let submittedMembers = {}; // 입력을 완료한 멤버 추적
-    let currentSavingMember = null;
-    let currentSavingDates = [];
-    let currentSavingUnavailable = false;
-
-    // ============================================
-    // 주차 ID 계산 (ISO 8601)
-    // ============================================
-
-    // ISO 8601 주차 문자열 반환 (예: "2026-W10")
-    function getISOWeekString(date) {
-      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-      const dayNum = d.getUTCDay() || 7; // 일요일을 7로
-      d.setUTCDate(d.getUTCDate() + 4 - dayNum); // 가장 가까운 목요일
-      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-      const year = d.getUTCFullYear();
-      return year + '-W' + (weekNo < 10 ? '0' : '') + weekNo;
-    }
-
-    // 현재 주의 월요일 기준 주차 ID
-    function getCurrentWeekId() {
-      const today = new Date();
-      const currentDay = today.getDay(); // 0=일, 1=월, ..., 6=토
-      const diffToMon = 1 - currentDay;
-      const mon = new Date(today);
-      if (currentDay === 0) {
-        mon.setDate(today.getDate() - 6); // 일요일: 지난 월요일
-      } else {
-        mon.setDate(today.getDate() + diffToMon);
-      }
-      return getISOWeekString(mon);
-    }
-
-    // 이번 주 수, 목, 금 날짜 계산 (요일 기반)
-    function getThisWeekDates() {
-      const today = new Date();
-      const currentDay = today.getDay(); // 0: 일요일, 1: 월요일, ...
-      const dates = [];
-
-      // 수요일(3), 목요일(4), 금요일(5)
-      const targetDays = [
-        { day: 3, name: '수요일', key: 'wed' },
-        { day: 4, name: '목요일', key: 'thu' },
-        { day: 5, name: '금요일', key: 'fri' }
-      ];
-
-      targetDays.forEach(target => {
-        const diff = target.day - currentDay;
-        const targetDate = new Date(today);
-        targetDate.setDate(today.getDate() + diff);
-        const month = targetDate.getMonth() + 1;
-        const day = targetDate.getDate();
-        dates.push({
-          value: target.key, // 요일 키로 변경 (wed, thu, fri)
-          display: `${month}월 ${day}일`,
-          dayName: target.name
-        });
-      });
-
-      return dates;
-    }
-
-    const weekDates = getThisWeekDates();
-
-    // 로딩 오버레이 숨기기
-    function hideLoading() {
-      const overlay = document.getElementById('loadingOverlay');
-      if (overlay) {
-        overlay.classList.add('hidden');
-        setTimeout(() => {
-          overlay.style.display = 'none';
-        }, 300);
-      }
-    }
-
-    // Google Sheets에서 데이터 로드
-    async function loadData() {
-      // 먼저 초기 렌더링 (빠른 화면 표시)
-      selectedMember = null;
-      selectedDates = [];
-      renderMembers();
-      renderDates();
-      renderScheduleTable();
-      updateBestDate();
-
-      // 로딩 오버레이 숨기기
-      hideLoading();
-
-      // 현재 주차 ID
-      const weekId = getCurrentWeekId();
-
-      // 백그라운드에서 데이터 로드 (weekId 포함)
-      try {
-        const response = await fetch(SCRIPT_URL + '?action=load&weekId=' + encodeURIComponent(weekId), { cache: 'no-cache' });
-        const data = await response.json();
-
-        if (data.success) {
-          if (data.members) allMembers = data.members;
-          if (data.availability) availability = data.availability;
-          if (data.submittedMembers) submittedMembers = data.submittedMembers;
-
-          // 데이터 로드 후 다시 렌더링
-          renderMembers();
-          renderScheduleTable();
-          updateBestDate();
-        }
-      } catch (error) {
-        console.error('데이터 로드 실패:', error);
-      }
-
-      // 10초마다 자동 새로고침 (다른 사용자의 변경사항 감지)
-      setInterval(async () => {
-        try {
-          const response = await fetch(SCRIPT_URL + '?action=load&weekId=' + encodeURIComponent(weekId), { cache: 'no-cache' });
-          const data = await response.json();
-
-          if (data.success) {
-            if (data.members) allMembers = data.members;
-            if (data.availability) availability = data.availability;
-            if (data.submittedMembers) submittedMembers = data.submittedMembers;
-
-            renderMembers();
-            renderScheduleTable();
-            updateBestDate();
-          }
-        } catch (error) {
-          console.error('자동 새로고침 실패:', error);
-        }
-      }, 10000);
-    }
-
-    // Google Sheets에 데이터 저장 (멤버별 병합 방식)
-    async function saveData() {
-      try {
-        const weekId = getCurrentWeekId();
-        const response = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'save',
-            weekId: weekId,
-            memberName: currentSavingMember,
-            memberDates: currentSavingDates,
-            isUnavailable: currentSavingUnavailable
-          })
-        });
-        console.log('데이터 저장 완료 (주차: ' + weekId + ', 멤버: ' + currentSavingMember + ')');
-      } catch (error) {
-        console.error('데이터 저장 실패:', error);
-      }
-    }
-
-    // 멤버 목록만 저장 (추가/삭제 시)
-    async function saveMembersOnly(deletedMember) {
-      try {
-        const weekId = getCurrentWeekId();
-        const response = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'saveMembers',
-            weekId: weekId,
-            members: allMembers,
-            deletedMember: deletedMember || null
-          })
-        });
-        console.log('멤버 목록 저장 완료');
-      } catch (error) {
-        console.error('멤버 목록 저장 실패:', error);
-      }
-    }
-
-    // 멤버 관리 모달 열기
-    function openManageModal() {
-      document.getElementById('manageModal').classList.add('active');
-      renderModalMembers();
-    }
-
-    // 멤버 관리 모달 닫기
-    function closeManageModal() {
-      document.getElementById('manageModal').classList.remove('active');
-      document.getElementById('newMemberInput').value = '';
-    }
-
-    // 모달 멤버 목록 렌더링
-    function renderModalMembers() {
-      const container = document.getElementById('modalMembersList');
-      if (allMembers.length === 0) {
-        container.innerHTML = '<div class="empty-state">등록된 멤버가 없습니다.</div>';
-        return;
-      }
-
-      container.innerHTML = allMembers.map(member => `
-        <div class="modal-member-item">
-          <span class="modal-member-name">${member}</span>
-          <button class="delete-btn" onclick="deleteMember('${member}')">삭제</button>
-        </div>
-      `).join('');
-    }
-
-    // 새 멤버 추가
-    function addNewMember() {
-      const input = document.getElementById('newMemberInput');
-      const name = input.value.trim();
-
-      if (!name) {
-        alert('멤버 이름을 입력해주세요.');
-        return;
-      }
-
-      if (allMembers.includes(name)) {
-        alert('이미 등록된 멤버입니다.');
-        return;
-      }
-
-      allMembers.push(name);
-      input.value = '';
-      saveMembersOnly();
-      renderModalMembers();
-      renderMembers();
-      renderScheduleTable();
-      updateBestDate();
-    }
-
-    // 멤버 삭제
-    function deleteMember(name) {
-      if (!confirm(`${name}을(를) 삭제하시겠습니까?\n해당 멤버의 모든 참석 정보가 삭제됩니다.`)) {
-        return;
-      }
-
-      allMembers = allMembers.filter(m => m !== name);
-
-      // 선택된 멤버였다면 선택 해제
-      if (selectedMember === name) {
-        selectedMember = null;
-      }
-
-      // 해당 멤버의 참석 정보 삭제
-      for (let date in availability) {
-        if (availability[date][name]) {
-          delete availability[date][name];
-        }
-      }
-
-      // 입력 완료 상태 삭제
-      if (submittedMembers[name]) {
-        delete submittedMembers[name];
-      }
-
-      saveMembersOnly(name);
-      renderModalMembers();
-      renderMembers();
-      renderScheduleTable();
-      updateBestDate();
-    }
-
-    // Enter 키로 멤버 추가
-    document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('newMemberInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          addNewMember();
-        }
-      });
-
-      // 모달 외부 클릭시 닫기
-      document.getElementById('manageModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-          closeManageModal();
-        }
-      });
-    });
-
-    // 멤버 선택
-    function selectMember(name) {
-      selectedMember = name;
-      updateSubmitButton();
-      updateUnavailableButton();
-      renderMembers();
-    }
-
-    // 멤버 목록 렌더링
-    function renderMembers() {
-      const container = document.getElementById('membersList');
-      container.innerHTML = allMembers.map(member => `
-        <div class="member-card ${selectedMember === member ? 'selected' : ''}" onclick="selectMember('${member}')">
-          <span class="member-name">${member}</span>
-        </div>
-      `).join('');
-    }
-
-    // 날짜 토글
-    function toggleDate(dateValue) {
-      if (!selectedMember) {
-        alert('먼저 본인을 선택해주세요.');
-        return;
-      }
-
-      const index = selectedDates.indexOf(dateValue);
-      if (index > -1) {
-        selectedDates.splice(index, 1);
-      } else {
-        selectedDates.push(dateValue);
-        // 날짜를 선택하면 "모든 날짜 불가능" 선택 해제
-        const unavailableCard = document.getElementById('unavailableCard');
-        if (unavailableCard) {
-          unavailableCard.classList.remove('selected');
-        }
-      }
-
-      updateSubmitButton();
-      renderDates();
-    }
-
-    // 날짜 목록 렌더링
-    function renderDates() {
-      const container = document.getElementById('datesListContainer');
-      const datesHtml = weekDates.map(date => `
-        <div class="date-card ${selectedDates.includes(date.value) ? 'selected' : ''}" onclick="toggleDate('${date.value}')">
-          <div class="date-text">${date.display}</div>
-          <div class="day-text">${date.dayName}</div>
-        </div>
-      `).join('');
-
-      const isUnavailableSelected = selectedMember && selectedDates.length === 0 && document.getElementById('unavailableCard')?.classList.contains('selected');
-
-      const unavailableHtml = `
-        <div class="unavailable-card ${!selectedMember ? 'disabled' : ''} ${isUnavailableSelected ? 'selected' : ''}" id="unavailableCard" onclick="toggleUnavailable()">
-          <div class="unavailable-text">모든 날짜<br>불가능</div>
-        </div>
-      `;
-
-      container.innerHTML = datesHtml + unavailableHtml;
-    }
-
-    // 날짜 형식 변환 (요일 키 기반)
-    function formatDate(dayKey) {
-      // 요일 키에 해당하는 실제 날짜 찾기
-      const dateInfo = weekDates.find(d => d.value === dayKey);
-      if (dateInfo) {
-        return `${dateInfo.display} (${dateInfo.dayName})`;
-      }
-      return dayKey; // fallback
-    }
-
-    // 스케줄 테이블 렌더링
-    function renderScheduleTable() {
-      const container = document.getElementById('scheduleTableContainer');
-
-      // 모든 날짜에 대한 참석 현황 표시 (선택하지 않은 날짜도 포함)
-      const allDates = weekDates.map(d => d.value);
-
-      // 각 날짜별 참석 가능 인원 계산
-      const dateCounts = {};
-      allDates.forEach(date => {
-        dateCounts[date] = 0;
-        allMembers.forEach(member => {
-          if (availability[date] && availability[date][member]) {
-            dateCounts[date]++;
-          }
-        });
-      });
-
-      let html = '<table class="schedule-table">';
-
-      // 헤더
-      html += '<thead><tr><th>멤버</th>';
-      allDates.forEach(date => {
-        html += `<th class="date-header">${formatDate(date)}</th>`;
-      });
-      html += '</tr></thead>';
-
-      // 멤버별 참석 여부
-      html += '<tbody>';
-      allMembers.forEach(member => {
-        const isCurrentUser = member === selectedMember;
-        const hasSubmitted = submittedMembers[member];
-        let rowStyle = '';
-        if (isCurrentUser) {
-          rowStyle = 'background: #fff3cd;';
-        } else if (!hasSubmitted) {
-          rowStyle = 'class="not-submitted-row"';
-        }
-
-        html += `<tr ${rowStyle}>
-          <td>
-            <div class="member-name-cell">
-              <strong>${member}${isCurrentUser ? ' (나)' : ''}</strong>
-              <button class="edit-btn" onclick="editMemberSchedule('${member}')">수정</button>
-            </div>
-          </td>`;
-
-        if (!hasSubmitted) {
-          // 미입력 상태
-          html += `<td colspan="${allDates.length}" class="not-submitted-cell">미입력</td>`;
-        } else {
-          // 입력 완료 상태
-          allDates.forEach(date => {
-            const isAvailable = availability[date] && availability[date][member];
-            html += `<td>${isAvailable ? '✓' : '-'}</td>`;
-          });
-        }
-
-        html += '</tr>';
-      });
-
-      // 참석 가능 인원 합계
-      html += '<tr style="background: #f8f9fa; font-weight: bold;"><td>참석 가능 인원</td>';
-      allDates.forEach(date => {
-        html += `<td class="attendance-count">${dateCounts[date]} / ${allMembers.length}</td>`;
-      });
-      html += '</tr>';
-
-      html += '</tbody></table>';
-
-      container.innerHTML = html;
-    }
-
-    // 최적의 날짜 계산 및 표시
-    function updateBestDate() {
-      const resultBox = document.getElementById('resultBox');
-      const allDates = weekDates.map(d => d.value);
-
-      // 각 날짜별 참석 가능 인원 계산
-      let maxCount = 0;
-      let bestDates = [];
-
-      allDates.forEach(date => {
-        let count = 0;
-        allMembers.forEach(member => {
-          if (availability[date] && availability[date][member]) {
-            count++;
-          }
-        });
-
-        if (count > maxCount) {
-          maxCount = count;
-          bestDates = [date];
-        } else if (count === maxCount && count > 0) {
-          bestDates.push(date);
-        }
-      });
-
-      if (maxCount === 0) {
-        resultBox.innerHTML = `
-          <div class="result-box">
-            <h3>아직 참석 가능한 멤버가 없습니다</h3>
-            <p class="attendance-text">참석 가능한 날짜를 선택해주세요.</p>
-          </div>
-        `;
-        return;
-      }
-
-      const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
-
-      resultBox.innerHTML = `
-        <div class="result-box">
-          <h3>최적의 모임 날짜</h3>
-          <div class="best-date-text">${bestDatesText}</div>
-          <p class="attendance-text">${maxCount}명 / ${allMembers.length}명 참석 가능</p>
-          <button class="copy-btn" onclick="copyToClipboard()">📋 일정 복사</button>
-        </div>
-      `;
-    }
-
-    // 입력 완료 버튼 활성화/비활성화 업데이트
-    function updateSubmitButton() {
-      const submitBtn = document.getElementById('submitBtn');
-
-      // 멤버가 선택되고 최소 1개 이상의 날짜가 선택되었을 때 활성화
-      if (selectedMember && selectedDates.length > 0) {
-        submitBtn.disabled = false;
-      } else {
-        submitBtn.disabled = true;
-      }
-    }
-
-    // 모든 날짜 불가능 버튼 활성화/비활성화 업데이트
-    function updateUnavailableButton() {
-      // renderDates()에서 처리하므로 별도 업데이트 불필요
-    }
-
-    // 모든 날짜 불가능 토글
-    function toggleUnavailable() {
-      if (!selectedMember) {
-        alert('먼저 본인을 선택해주세요.');
-        return;
-      }
-
-      const unavailableCard = document.getElementById('unavailableCard');
-      const isCurrentlySelected = unavailableCard.classList.contains('selected');
-
-      if (isCurrentlySelected) {
-        // 선택 해제
-        unavailableCard.classList.remove('selected');
-        updateSubmitButton();
-      } else {
-        // 모든 날짜 선택 해제하고 불가능 선택
-        selectedDates = [];
-        unavailableCard.classList.add('selected');
-
-        // 입력 완료 버튼 활성화
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = false;
-      }
-
-      renderDates();
-    }
-
-    // 입력 완료 버튼 클릭 시 실행
-    function submitSelection() {
-      if (!selectedMember) {
-        return;
-      }
-
-      // 저장할 멤버 정보를 임시 변수에 저장 (saveData에서 서버로 전송)
-      currentSavingMember = selectedMember;
-      currentSavingDates = [...selectedDates];
-      currentSavingUnavailable = selectedDates.length === 0;
-
-      // 로컬 상태도 업데이트 (즉시 UI 반영용)
-      weekDates.forEach(date => {
-        if (availability[date.value] && availability[date.value][selectedMember]) {
-          delete availability[date.value][selectedMember];
-        }
-      });
-
-      selectedDates.forEach(dateValue => {
-        if (!availability[dateValue]) {
-          availability[dateValue] = {};
-        }
-        availability[dateValue][selectedMember] = true;
-      });
-
-      // 입력 완료 상태로 표시
-      submittedMembers[selectedMember] = true;
-
-      saveData();
-
-      // 선택 초기화
-      selectedMember = null;
-      selectedDates = [];
-
-      renderMembers();
-      renderDates();
-      renderScheduleTable();
-      updateBestDate();
-      updateSubmitButton();
-      updateUnavailableButton();
-
-      alert('입력이 완료되었습니다!');
-    }
-
-    // 멤버 일정 수정 기능
-    function editMemberSchedule(memberName) {
-      // 해당 멤버로 선택
-      selectedMember = memberName;
-
-      // 현재 해당 멤버가 선택한 날짜들을 가져옴
-      selectedDates = [];
-      weekDates.forEach(date => {
-        if (availability[date.value] && availability[date.value][memberName]) {
-          selectedDates.push(date.value);
-        }
-      });
-
-      // UI 업데이트
-      renderMembers();
-      renderDates();
-      updateSubmitButton();
-      updateUnavailableButton();
-
-      // 페이지 상단으로 스크롤
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      alert(`${memberName}의 일정을 수정합니다.\n날짜를 다시 선택한 후 "입력 완료"를 클릭하세요.`);
-    }
-
-    // 클립보드에 일정 복사
-    async function copyToClipboard() {
-      // 최적의 날짜 계산
-      const allDates = weekDates.map(d => d.value);
-      let maxCount = 0;
-      let bestDates = [];
-
-      allDates.forEach(date => {
-        let count = 0;
-        allMembers.forEach(member => {
-          if (availability[date] && availability[date][member]) {
-            count++;
-          }
-        });
-
-        if (count > maxCount) {
-          maxCount = count;
-          bestDates = [date];
-        } else if (count === maxCount && count > 0) {
-          bestDates.push(date);
-        }
-      });
-
-      if (maxCount === 0) {
-        alert('아직 참석 가능한 멤버가 없습니다.');
-        return;
-      }
-
-      const bestDatesText = bestDates.map(d => formatDate(d)).join(', ');
-
-      // 참석 가능한 멤버 목록
-      const attendeesList = [];
-      bestDates.forEach(date => {
-        allMembers.forEach(member => {
-          if (availability[date] && availability[date][member]) {
-            if (!attendeesList.includes(member)) {
-              attendeesList.push(member);
-            }
-          }
-        });
-      });
-
-      // 복사할 텍스트 생성
-      const textToCopy = `📅 AI Study Crew 모임 일정
-날짜: ${bestDatesText}
-참석 인원: ${maxCount}명 / ${allMembers.length}명
-참석 가능 멤버: ${attendeesList.join(', ')}`;
-
-      try {
-        await navigator.clipboard.writeText(textToCopy);
-        alert('일정이 클립보드에 복사되었습니다! 📋\n원하는 곳에 붙여넣기(Ctrl+V)하세요.');
-      } catch (error) {
-        // 클립보드 API가 지원되지 않는 경우 fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = textToCopy;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-
-        try {
-          document.execCommand('copy');
-          alert('일정이 클립보드에 복사되었습니다! 📋\n원하는 곳에 붙여넣기(Ctrl+V)하세요.');
-        } catch (err) {
-          alert('클립보드 복사에 실패했습니다.');
-          console.error('복사 오류:', err);
-        }
-
-        document.body.removeChild(textarea);
-      }
-    }
-
-    // 페이지 로드 시 데이터 로드
-    loadData();
-  </script>
-</body>
-</html>
+# Design System Inspired by Starbucks
+
+## 1. Visual Theme & Atmosphere
+
+Starbucks' design system is a **warm, confident retail flagship** wearing the green of their storefront apron across every surface. The canvas alternates between a neutral-warm cream (`#f2f0eb`) and a ceramic off-white (`#edebe9`) — colors that reference actual store materials: the paper napkins, the café walls, the wood finishes — while the signature **Starbucks Green** (`#006241`) anchors the brand moment on hero bands, CTAs, and the Rewards experience. The greens come in four calibrated shades (Starbucks, Accent, House, Uplift) each mapped to a specific surface role, and gold (`#cba258`) appears only around Rewards-status ceremony — not as a general accent.
+
+Typography carries most of the brand voice. The proprietary **SoDoSans** typeface (custom to Starbucks) sits across nearly every surface with a tight `-0.16px` letter-spacing — it reads confident and friendly rather than fashion-magazine severe. What's unusual: the Rewards page switches to a warm serif (`"Lander Tall", "Iowan Old Style", Georgia`) for specific headline moments, subtly echoing the nostalgic feel of a coffeehouse chalkboard. And the Careers pages use a handwritten script (`"Kalam", "Comic Sans MS", cursive`) for personal cup-name touches. Three typefaces, three contexts — the system is disciplined about when each appears.
+
+The surfaces breathe through rounded geometry. Every button is a 50px full-pill. Cards take a 12px rounded-rectangle. The "Frap" floating CTA — a 56px circular order button in Green Accent (`#00754A`) — is the product's signature depth move: it floats bottom-right with a layered shadow stack (`0 0 6px rgba(0,0,0,0.24)` base + `0 8px 12px rgba(0,0,0,0.14)` ambient) and compresses via `scale(0.95)` on press. Elevations are otherwise restrained — card shadows stay at a whispered `0.14/0.24` alpha, global nav gets a quiet three-layer shadow stack. The whole system feels like clean café signage: legible, warm, and never shouting.
+
+**Key Characteristics:**
+- Four-tier green brand system (Starbucks / Accent / House / Uplift) each mapped to a distinct surface role — not a single "brand green"
+- Gold reserved for Rewards-status moments only; never a general-purpose accent
+- Warm-neutral canvas (`#f2f0eb` / `#edebe9`) instead of cold white — references café materials
+- Custom proprietary typeface (SoDoSans) with tight `-0.16px` letter-spacing as the universal voice
+- Context-specific type switches: serif (Lander Tall) for Rewards, script (Kalam) for Careers cup-names
+- Full-pill buttons (`50px` radius) universal, `scale(0.95)` active press the signature micro-interaction
+- Floating "Frap" circular CTA (`56px`, Green Accent fill, layered shadow stack) — the product's signature elevation element
+- Gift-card surfaces designed as **photographed physical product** — every card is a distinct illustrated photograph rather than a generated graphic
+- 12px card radius + whisper-soft shadows keep content cards flat-plus-hint-of-lift
+- Rem-based spacing scale anchored at 1.6rem (~16px) = `--space-3`, stepping to 6.4rem (~64px)
+
+**Color-block page rhythm:** Cream hero → White content sections → Dark-green (`#1E3932`) feature band with white text → Cream utility zone → Dark-green (`#1E3932`) footer with gold / white text — an espresso-dark bookend around the bright body.
+
+## 2. Color Palette & Roles
+
+**Source pages analyzed:** homepage, rewards, gift cards, product detail (Pink Energy Drink), product nutrition (Cold Brew).
+
+### Primary
+
+- **Starbucks Green** (`#006241`): The historic brand green. Used on h1 headings, primary section headers on the Rewards page, and as the main brand signal wherever a single dominant color is needed.
+- **Green Accent** (`#00754A`): A slightly brighter, more luminous green. The primary filled-CTA color ("Explore our afternoon menu", "See the spring menu") and the fill of the floating Frap circular button.
+- **House Green** (`#1E3932`): The deep near-black brand green. Footer surface, feature-band backgrounds, reward-status dark surfaces, and the headline "Free coffee is just the beginning" hero band on Rewards.
+- **Green Uplift** (`#2b5148`): A secondary mid-dark green used sparingly on decorative accents and dark-gradient moments.
+- **Green Light** (`#d4e9e2`): A pale mint wash used for form-valid-state tints and light green utility surfaces.
+
+### Secondary & Accent
+
+- **Gold** (`#cba258`): Reserved almost exclusively for Rewards-status ceremony — Gold-tier callouts, partnership badges (SkyMiles, Bonvoy), and premium-feeling accents. Never a general-purpose brand color.
+- **Gold Light** (`#dfc49d`): Softer gold for background washes on gold-tier sections.
+- **Gold Lightest** (`#faf6ee`): Cream-gold page-surface wash used under partnership sections on the Rewards page — ties the gold accent back into the warm neutral system.
+
+### Surface & Background
+
+- **White** (`#ffffff`): Primary card and modal surface. Also card fill on gift-card tiles.
+- **Neutral Cool** (`#f9f9f9`): Subtle cool-gray surface used on dropdown menus ("Account" dropdown), form-card wraps, and quiet utility containers.
+- **Neutral Warm** (`#f2f0eb`): The warm cream **primary page canvas** for Rewards utility zones and hero bands.
+- **Ceramic** (`#edebe9`): A slightly warmer/darker cream for zone separators, soft page-section washes, and Rewards partnership band.
+- **Black** (`#000000`): Deep ink reserved for the dark top-of-page CTA strip ("Join now") and high-contrast top-nav sign-in buttons.
+
+### Neutrals & Text
+
+- **Text Black** (`rgba(0, 0, 0, 0.87)`): Primary heading and body text color on light surfaces. Not pure black — an 87%-opacity black that reads warmer.
+- **Text Black Soft** (`rgba(0, 0, 0, 0.58)`): Secondary/metadata text on light surfaces.
+- **Text White** (`rgba(255, 255, 255, 1)`): Primary heading/body text on dark green surfaces.
+- **Text White Soft** (`rgba(255, 255, 255, 0.70)`): Secondary text on dark-green surfaces — footer link descriptions, caption text.
+- **Rewards Green** (`#33433d`): A dedicated muted slate-green used only on Rewards-page text blocks — a slightly "dustier" reading color than Text Black that signals "reward surface" without using full Starbucks Green.
+
+### Semantic & Accent
+
+- **Red** (`#c82014`): Error and destructive state (form invalid, destructive actions).
+- **Yellow** (`#fbbc05`): Warning state, legacy brand touch.
+- **Green Light** (`#d4e9e2` at 33% opacity = `hsl(160 32% 87% / 33%)`): Form valid-field tint background.
+- **Red Tint** (`hsl(4 82% 43% / 5%)`): Invalid-field tint on forms.
+
+### Black / White Alpha Ladders
+
+Two parallel translucent scales for overlay and secondary-text use:
+- `rgba(0,0,0,0.06)` through `rgba(0,0,0,0.90)` in 10% steps — for dark overlays on light surfaces
+- `rgba(255,255,255,0.10)` through `rgba(255,255,255,0.90)` in 10% steps — for light overlays on dark surfaces
+
+### Gradient System
+
+No structural gradient tokens observed. Surface hierarchy is solid-color-block throughout — the system relies on its five-tier cream/green surface palette rather than gradients.
+
+## 3. Typography Rules
+
+### Font Family
+
+- **Primary:** `SoDoSans, "Helvetica Neue", Helvetica, Arial, sans-serif` — Starbucks' proprietary corporate typeface, used across nearly every surface
+- **Loading Fallback:** `"Helvetica Neue", Helvetica, Arial, sans-serif` — what users see before SoDoSans loads
+- **Rewards Serif:** `"Lander Tall", "Iowan Old Style", Georgia, serif` — used on specific Rewards-page headline moments for a warm editorial feel
+- **Careers Script:** `"Kalam", "Comic Sans MS", cursive` — used exclusively for Careers-page "cup name" decorative touches, referencing the hand-written names on Starbucks cups
+
+No OpenType stylistic sets explicitly activated at `:root`.
+
+### Hierarchy
+
+| Role | Size | Weight | Line Height | Letter Spacing | Notes |
+|------|------|--------|-------------|----------------|-------|
+| Display (text-10) | 5.0rem / 80px | 400–600 | 1.2 | -0.16px | Largest Rewards/hero display |
+| Jumbo (text-9) | 3.6rem / 58px | 400–600 | 1.2 | -0.16px | Secondary hero headings |
+| Hero Large (text-8) | 2.8rem / 45px | 400–600 | 1.2–1.5 | -0.16px | Landing section headlines |
+| H1 | 24px | 600 | 36px | -0.16px | Starbucks-Green primary heading |
+| H2 | 24px | 400 | 36px | -0.16px | Regular-weight section title in Text Black |
+| Body Large | 19px | 400–600 | 33.25px (~1.75) | -0.16px | Hero intro copy, feature-band body |
+| Body (text-3) | 1.6rem / 16px | 400 | 1.5 (24px) | -0.01em | Default body copy |
+| Small (text-2) | 1.4rem / ~14px | 400–600 | 1.5 | -0.01em | Button label, metadata, form labels |
+| Micro (text-1) | 1.3rem / ~13px | 400 | 1.5 | -0.01em | Active float-label state, caption micro-copy |
+| Button Label | 14–16px | 400–600 | 1.2 | -0.01em | All pill-button labels |
+
+**Letter-spacing tokens:**
+- `letterSpacingNormal`: `-0.01em` (default — tight, characteristic)
+- `letterSpacingLoose`: `0.1em` (emphasized caps)
+- `letterSpacingLooser`: `0.15em` (uppercase-style labels, extreme emphasis)
+
+**Line-height tokens:**
+- `lineHeightNormal`: `1.5` (body)
+- `lineHeightCompact`: `1.2` (display/buttons)
+
+### Principles
+
+- **Tight negative tracking (`-0.01em`)** is applied almost universally — the entire product reads slightly compressed, which gives SoDoSans its confident presence without feeling squeezed.
+- **Weight shifts carry hierarchy, not size shifts.** H1 and H2 share the same 24px/36px size; only weight (600 vs 400) and color (Starbucks-Green vs Text Black) separate them.
+- **Size tokens use rem, anchored to `1rem = 10px`** on this site (via a `font-size: 62.5%` root trick). So `1.6rem` = 16px, `2.4rem` = 24px, etc. The scale is semantic (textSize-1 through textSize-10), not arbitrary pixel values.
+- **Context-specific typeface swaps** — serif on Rewards, script on Careers — are deliberate and localized. Never mix them with the primary sans within the same surface.
+- **Body text never goes pure black** — it sits at `rgba(0,0,0,0.87)` to match the warm-neutral canvas temperature.
+
+### Note on Font Substitutes
+
+SoDoSans is proprietary to Starbucks (licensed from House Industries, not publicly available). Reasonable open-source substitutes:
+- **Inter** (Google Fonts) — similar humanist geometric proportions, wide weight range
+- **Manrope** — slightly rounder, similar confident feel
+- **Nunito Sans** — warmer, good for a "café" brand substitute
+
+If substituting, verify the tight `-0.01em` / `-0.16px` tracking still reads well; some open-source fonts need `-0.005em` instead.
+
+Lander Tall (the Rewards serif) is custom — open-source substitutes: **Iowan Old Style** (already in fallback), **Lora**, or **Source Serif Pro**. Kalam (Careers script) is available on Google Fonts directly.
+
+## 4. Component Stylings
+
+### Buttons
+
+**1. Primary Filled — "Explore our afternoon menu / Sign up for free"**
+- Background: `#00754A` (Green Accent)
+- Text: `#ffffff`
+- Border: `1px solid #00754A`
+- Radius: `50px` (full pill)
+- Padding: `7px 16px`
+- Font: SoDoSans, 16px, weight 600, letter-spacing `-0.01em`
+- Active state: `transform: scale(0.95)` via `--buttonActiveScale`
+- Transition: `all 0.2s ease`
+
+**2. Primary Outlined — "Give them a try / Start an order"**
+- Background: transparent
+- Text: `#00754A` (Green Accent)
+- Border: `1px solid #00754A`
+- Same radius/padding/active/transition as Primary Filled
+
+**3. Black Filled — "Join now"**
+- Background: `#000000`
+- Text: `#ffffff`
+- Border: `1px solid #000000`
+- Radius: `50px`, Padding: `7px 16px`
+- Font: 14px, weight 600
+- Used on the top-of-page join strip and similar conversion moments
+
+**4. Dark Outlined — "Sign in"**
+- Background: transparent
+- Text: `rgba(0, 0, 0, 0.87)` (Text Black)
+- Border: `1px solid rgba(0, 0, 0, 0.87)`
+- Radius: `50px`, Padding: `7px 16px`
+- Font: 14px, weight 600
+
+**5. Green-on-Green Inverted — "See the spring menu"**
+- Background: `#ffffff`
+- Text: `#00754A`
+- Border: `1px solid #ffffff`
+- Used when the surface behind the button is the dark green House Green band — white button with green text instead of a filled green pill on green bg
+
+**6. Outlined on Dark — "Learn more / Order now"**
+- Background: transparent
+- Text: `#ffffff`
+- Border: `1px solid #ffffff`
+- Used on dark-green feature bands for secondary action paired with a white filled CTA
+
+**7. Consent Agree (dark-green variant)**
+- Background: `rgb(0, 130, 72)` (a specific variant green used in the cookie-consent module)
+- Text: `#ffffff`
+- No border, `50px` radius, `7px 16px` padding, 14px / weight 400
+- Slightly brighter than Green Accent — reserved for the consent-banner Agree action
+
+**8. Frap — Floating Circular Order Button**
+- Background: `#00754A` (Green Accent)
+- Icon: `#ffffff`
+- Size: `5.6rem / 56px` (standard), `4rem / 40px` (mini variant)
+- Radius: `50%` (full circle)
+- Fixed bottom-right, `-0.8rem` touch offset for extra tap comfort
+- Shadow stack: base `0 0 6px rgba(0,0,0,0.24)` + ambient `0 8px 12px rgba(0,0,0,0.14)`
+- Active state: ambient shadow fades to `0 8px 12px rgba(0,0,0,0)`
+- This is the product's signature elevation element — it floats over every scrolled surface
+
+**9. Full-width Feedback Tab — "Provide feedback"**
+- Background: `#00754A`
+- Text: `#ffffff`
+- Radius: `12px 12px 0px 0px` (top-rounded only)
+- Padding: `8px 16px`
+- Font: 14px, weight 400
+- Positioned fixed bottom-right-inside, attached to the viewport edge
+
+### Cards & Containers
+
+**Content Card (default)**
+- Background: `#ffffff` (`--cardBackgroundColor`)
+- Radius: `12px` (`--cardBorderRadius`)
+- Shadow: `0px 0px .5px 0px rgba(0,0,0,0.14), 0px 1px 1px 0px rgba(0,0,0,0.24)` (`--cardBoxShadow`)
+- Used for: feature cards, menu-item tiles, reward-status panels
+
+**Gift Card Tile**
+- Background: illustrated photography fills the card (no solid bg)
+- Radius: similar to cards (`~12px`, slightly tighter on corners)
+- Shadow: lighter than default card — these are treated like physical cards laid on the canvas
+- Labeled by category above the card grid (Spring, Thank You, Birthday, Celebration, Mother's Day, Appreciation, Encouragement, Milestones, Anytime)
+
+**Rewards Status Cards (Rewards page signature)**
+- Three-column grid: Bronze / Gold / Silver-ish — each a dark-green (`#1E3932`) panel with:
+  - Colored gradient/color header ring
+  - Numbered "Level" badge
+  - Status title in large SoDoSans weight 600
+  - Stars / benefits list in white/translucent-white text
+  - Bottom "As you earn more stars…" progression caption
+
+**Partnership Card (Rewards)**
+- Background: `#faf6ee` (Gold Lightest) warm-cream surface
+- Content: partner logos ("SkyMiles", "Bonvoy") centered, with descriptive text below
+- Radius and shadow follow default card spec
+
+**Dropdown Menu (Account dropdown, top-nav)**
+- Background: `#f9f9f9` (Neutral Cool)
+- Menu items at `24px / weight 400` in Text Black
+- No border — just background surface shift against white nav
+
+**Modal**
+- Padding: `2.4rem` (`--modalPadding`)
+- Top padding: `8.8rem` (`--modalTopPadding`) — leaves room for close button / header
+- Combined vertical padding: `11.2rem`
+- Radius inherits from card spec (`12px`)
+
+### Inputs & Forms
+
+**Floating Label Input**
+- Label floats above the input border when focused/filled
+- Desktop label font size: `1.9rem` default, animates to `1.4rem` when active
+- Mobile label font size: `1.6rem` default, animates to `1.3rem` active
+- Label horizontal offset: `12px` from left
+- Active label translate: up to `-12px` with `-50%` Y translation
+- Field padding: `12px`
+- Form horizontal padding: `1.6rem`
+- Validation: valid-field gets `rgba(green-light, 0.33)` tint; invalid-field gets `rgba(red, 0.05)` tint
+- Transition: `0.3s option-label-marker-expansion cubic-bezier(0.32, 2.32, 0.61, 0.27)` on checked-input
+
+**Option Icon (checkbox/radio)**
+- Padding: `3px` inner
+- Uses the checked-input cubic-bezier animation above (a slightly "springy" 2.32 overshoot curve)
+
+### Navigation
+
+**Global Nav (top bar)**
+- Fixed position with progressive heights: `64px` xs → `72px` mobile → `83px` tablet → `99px` desktop
+- Shadow stack: `0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)` — three-layer soft lift
+- Left: Starbucks wordmark logo, offsetting by `99px` (md) / `131px` (lg) from left edge
+- Primary links inline in SoDoSans weight 400–600: Menu · Rewards · Gift Cards
+- Right: Find a store link + Sign in (outlined) + Join now (black filled)
+
+**Sub-nav (second bar, e.g., Rewards internal)**
+- Height: `53px` (global subnav) / `48px` (internal subnav)
+- Typically horizontal tab group beneath the global nav
+
+**Mobile Nav**
+- Collapses to a hamburger drawer below tablet breakpoint
+- Frap floating button persists at bottom-right regardless of nav state
+
+### Image Treatment
+
+- **Hero photography**: Product photos (beverages in clear glass with colored backgrounds — coral, sage, warm amber) occupy ~40vw of a split-hero layout; text occupies the other 60vw (`--headerCrateProportion: 40vw` / `--contentCrateProportion: 60vw`)
+- **Gift card illustrations**: Each card is a distinct illustrated photograph (painted-feel, hand-drawn-looking, warm color palette). Never generic generated graphics.
+- **Rewards ceremony imagery**: Photographs of Starbucks Rewards App screens held in-hand, angled compositions — product-in-context photography.
+- **Menu thumbnails**: Square or 4:3 product photography with clean white/cream backdrops, slight soft drop-shadow around the glass.
+- **Image fade-in**: `opacity 0.3s ease-in` transition on image load (`--imageFadeTransition`).
+
+### Feature Band (dark-green hero strip)
+
+Full-width `#1E3932` (House Green) band with:
+- Left: white headline + subhead + CTA row
+- Right: product photography or illustration
+- Split ratio ~40/60 or 50/50 depending on section
+- White text throughout with `rgba(255,255,255,0.70)` for secondary copy
+- CTAs follow Green-on-Green Inverted (white filled) + Outlined on Dark (white outline) pairing
+
+### Expander / Accordion
+
+- Duration: `300ms` (`--expanderDuration`)
+- Timing curve: `cubic-bezier(0.25, 0.46, 0.45, 0.94)` — a measured ease-out
+- Used for FAQ sections on Rewards and gift page
+
+### Cookie Consent Module
+
+Dark-green modal card at top of page with "Agree" (green-filled) and "Manage preferences" (outlined) buttons. Appears on first visit; dismissible.
+
+### Product Detail Components (PDP signature cluster)
+
+A repeating component cluster used on menu product pages (e.g., `/menu/product/40498/iced` for a drink detail, `/menu/product/.../nutrition` for nutrition facts). These extend the component inventory without changing tokens.
+
+**Size Options Selector**
+- Horizontal row of 4 cup-icon buttons (Tall / Grande / Venti / Trenta)
+- Each item: cup silhouette icon on top, size name below (16/700 in Starbucks-Green), fluid-ounce caption (13/400 in Text Black Soft)
+- Active state: a green circular ring outline (`2px solid #00754A`) around the selected cup icon
+- Inactive: no ring, same typography
+- Full-width row, equal spacing
+- Radius of container: `12px` or flat; individual icons are `50%` circular
+- Padding: `16px 24px` internal
+
+**Add-in / Milk Select (outlined rectangle)**
+- Background: `#ffffff`
+- Border: `1px solid #d6dbde` (Input Border)
+- Radius: `4px`
+- Full-width in its column
+- Floating label above top border: "Add-ins" / "Milk" / "Add-ins" — 13/700 in Text Black, uppercase, `0.325px` letter-spacing
+- Value displayed centered (e.g., "Ice", "Coconut", "Strawberry Fruit Inclusions scoop"): 16/400 Text Black
+- Chevron-down icon right side in Text Black Soft
+- Focus: border shifts to Green Accent (`#00754A`)
+
+**Numeric Stepper**
+- Embedded inside an Add-in row when a quantity is required (e.g., Strawberry Fruit Inclusions scoop)
+- `−` minus button + count number + `+` plus button, all inline right of the label
+- Buttons: circular `32×32px` with `1px solid #d6dbde` border, neutral gray icon
+- Count number: 16/700 Text Black centered
+
+**Customize Button**
+- Background: `#ffffff`
+- Text: `#00754A` (Green Accent)
+- Border: `1.5px solid #00754A`
+- Radius: `50px` (full pill)
+- Padding: `14px 40px` (generously larger than default pills — this is a secondary primary action)
+- Label: "Customize" with a gold sparkle ✨ icon inset left
+- Used for: entering the drink-customization flow after size/milk selection
+
+**Add to Order Button (PDP)**
+- Background: `#00754A` (Green Accent)
+- Text: `#ffffff`
+- Radius: `50px`
+- Padding: `14px 32px`
+- Pinned top-right of product card and/or aligned right within the store-availability band
+- Same scale(0.95) active behavior as other primary CTAs
+
+**Rewards Cost Pill — "200★ item"**
+- Background: transparent
+- Border: `1px solid #cba258` (Gold)
+- Text: `#cba258` (Gold)
+- Radius: `50px` (full pill)
+- Padding: `4px 12px`
+- Content: "200★ item" where `★` is a small filled star glyph — indicates the Rewards Stars required to redeem this item
+- Font: Proxima Nova 13/700 with `0.5px` letter-spacing
+- Used only on products that are Rewards-redeemable
+
+**Product Description Band**
+- Full-width dark-green band (`#1E3932` House Green)
+- Contains top-to-bottom:
+  1. Rewards Cost Pill (gold) if applicable
+  2. Product description body copy in white (16/400/1.5)
+  3. Nutritional summary inline ("140 calories, 25g sugar, 2.5g fat") with info-icon tooltip — 14/700 white
+  4. "Full nutrition & ingredients list" outlined-white-on-green pill button
+- Padding: `32px` vertical
+- Appears beneath the primary product header band
+
+**Ingredients / Nutrition Table**
+- Two-column layout on the Nutrition page
+- Left column: "Ingredients" header + list or "Not available for this item" placeholder text block with an explanatory paragraph in Text Black Soft 14/400
+- Right column: "Nutrition" header + label/value rows
+- Each row: nutrient label (Proxima Nova 14/400) on the left, value (e.g., "140 calories", "25g", "205 mg**") on the right, separated by a `1px solid #e7e7e7` hairline below
+- Footnote for caffeine/asterisk markers in 13/400 Text Black Soft at the bottom
+- Reusable pattern for nutrition facts regulation-compliant tables
+
+**Store Availability Selector**
+- Appears on dark-green feature band above the size-options row
+- Full-width rounded rectangle with transparent-white interior
+- Text: "For item availability, choose a store" in white, 14/400
+- Right side: chevron-down affordance + shopping-bag SVG icon in white outline
+- Radius: `4px`
+- Height: ~48px
+
+**PDP Breadcrumb**
+- "Menu / Refreshers / Pink Energy Drink" trail above the product title
+- Separator: `/` slash character in Text Black Soft
+- Current page is unlinked, prior pages are underlined green-accent links
+- Font: 14/400 Proxima Nova
+- Appears on all PDP pages
+
+**Back Chevron Link (PDP nutrition / detail sub-pages)**
+- "← Back" text link above section headings on the nutrition page
+- Text in Green Accent (`#00754A`) 14/700 Proxima Nova
+- Left chevron `<` in the same green
+- Alternative to full breadcrumb on deep sub-pages
+
+## 5. Layout Principles
+
+### Spacing System
+
+Rem-based semantic scale (anchored `1rem = 10px`):
+
+| Token | Rem | Pixels | Typical Use |
+|-------|-----|--------|-------------|
+| `--space-1` | `0.4rem` | 4px | Tightest inline padding |
+| `--space-2` | `0.8rem` | 8px | Small gap, button vertical padding |
+| `--space-3` | `1.6rem` | 16px | Default — card padding, outer gutter xs |
+| `--space-4` | `2.4rem` | 24px | Section inner spacing, outer gutter md |
+| `--space-5` | `3.2rem` | 32px | Major between-section spacing |
+| `--space-6` | `4rem` | 40px | Large gaps, outer gutter lg, header crate |
+| `--space-7` | `4.8rem` | 48px | Section-to-section spacing |
+| `--space-8` | `5.6rem` | 56px | Very large breathing — Frap height |
+| `--space-9` | `6.4rem` | 64px | Widest section padding |
+
+**Gutter tokens:**
+- `--outerGutter: 1.6rem` (16px, default / mobile)
+- `--outerGutterMedium: 2.4rem` (24px, tablet)
+- `--outerGutterLarge: 4.0rem` (40px, desktop)
+
+**Universal rhythm constant:** `1.6rem` (16px) appears across every page as the default outer gutter, card padding baseline, and text size 3 body — the system's most frequent spacing unit.
+
+### Grid & Container
+
+- Column width scale: `--columnWidthSmall: 343px` / `Medium: 500px` / `Large: 720px` / `XLarge: 1440px`
+- Gift-card grid uses a 3-5-up responsive grid of `~343px` tiles
+- Rewards status section: 3-up dark-green panels at `lg+` breakpoints
+- Hero: asymmetric split 40% (image) / 60% (content) via `--headerCrateProportion` / `--contentCrateProportion`
+
+### Whitespace Philosophy
+
+Whitespace carries the feeling of "plenty of space in the café." Section padding leans generous (40–64px). Content blocks are separated by whitespace rather than dividers. The cream canvas (`#f2f0eb`) is itself a visual breath between white cards and green feature bands.
+
+### Border Radius Scale
+
+| Value | Use |
+|-------|-----|
+| `12px` | Cards, modals, menu-item tiles (`--cardBorderRadius`) |
+| `12px 12px 0 0` | Full-width feedback tab (top-rounded only) |
+| `50px` | All buttons — full-pill radius (`--buttonBorderRadius`) |
+| `50%` | Circular icons, Frap floating button, avatar thumbnails |
+| Specialty | `3.3333%/5.298%` elliptical for Starbucks-Visa-Card mockups (`--svcRoundedCorners`) |
+
+## 6. Depth & Elevation
+
+| Level | Treatment | Use |
+|-------|-----------|-----|
+| Card | `0 0 0.5px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.24)` | Default content cards — a whisper-soft dual-shadow |
+| Global Nav | `0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)` | Triple-layer soft lift on the fixed top bar |
+| Frap Base | `0 0 6px rgba(0,0,0,0.24)` | Base halo around the floating circular CTA |
+| Frap Ambient | `0 8px 12px rgba(0,0,0,0.14)` | Stacked directional ambient — floats the Frap forward |
+| Gift Card | Light drop shadow around illustrated photograph | Physical-card feel for gift tiles |
+| Starbucks Card (SVC) | `drop-shadow(0 4px 1px rgba(0,0,0,0.11)) drop-shadow(0 0 2px rgba(0,0,0,0.24))` | Stacked SVG drop shadows for Starbucks Card visuals |
+
+**Shadow philosophy:** Whisper-soft, layered over solid — the system never reaches for a single heavy drop shadow. Instead, it stacks 2–3 low-alpha shadows with different offsets to simulate real-world ambient + direct lighting. The Frap button is the most elevated element on any page.
+
+### Decorative Depth
+
+- **No gradient system** — surfaces are solid color-block
+- **Color-block banding** carries perceived depth (dark-green bands read as "recessed feature zones" between cream/white body sections)
+- **SVG filter shadows** on Starbucks-Card visuals add a slight 3D physicality without a box-shadow
+
+## 7. Do's and Don'ts
+
+### Do
+- Use Neutral Warm (`#f2f0eb`) or Ceramic (`#edebe9`) as page canvas instead of pure white — the warm cream is the signature
+- Map the green tiers to their intended surface role — Starbucks Green for headings, Green Accent for CTAs, House Green for deep bands, Uplift for decorative
+- Keep tracking tight at `-0.01em` / `-0.16px` on SoDoSans across the whole system
+- Use 50px full-pill radius on every button without exception
+- Apply `transform: scale(0.95)` as the universal button active state
+- Reserve Gold for Rewards-status ceremony moments only
+- Use SoDoSans for nearly everything; switch to Lander Tall serif only for Rewards editorial headlines; reserve Kalam script for Careers "cup name" moments
+- Layer 2–3 low-alpha shadows instead of one heavier drop shadow for elevation
+- Use the Frap circular CTA as the persistent floating order entry on every shopping surface
+- Let the cream canvas breathe between content cards — use whitespace, not dividers
+
+### Don't
+- Don't use pure white as the page canvas — the warm cream temperature is load-bearing
+- Don't pick "one brand green" — the four-green system is intentional; using only `#006241` everywhere flattens the brand
+- Don't use Gold as a general-purpose accent — it's a Rewards signal only
+- Don't square the corners on buttons — the 50px pill is universal
+- Don't introduce gradient fills — the system is color-block throughout
+- Don't weight-contrast h1 and h2 by size — the hierarchy comes from weight + color (600 Starbucks-Green vs 400 Text Black)
+- Don't use pure black for body text — `rgba(0,0,0,0.87)` matches the warm canvas
+- Don't skip the `scale(0.95)` active feedback on buttons — it's a signature micro-interaction
+- Don't stack single heavy shadows; always layer 2–3 low-alpha ones
+- Don't introduce serifs or scripts into the main shopping flow — they belong to Rewards and Careers contexts respectively
+
+## 8. Responsive Behavior
+
+### Breakpoints
+
+Inferred from component width tokens and progressive nav heights:
+
+| Name | Width | Key Changes |
+|------|-------|-------------|
+| xs | < 480px | Global nav 64px; hamburger menu; single-column layouts; pill buttons full-width |
+| Mobile | 480–767px | Global nav 72px; gift-card grid 2-up; card padding tightens |
+| Tablet | 768–1023px | Global nav 83px; gift-card grid 3-up; hero split begins to appear |
+| Desktop | 1024–1439px | Global nav 99px; gift-card grid 4-up; full asymmetric hero 40/60 |
+| XLarge | 1440px+ | Content caps at `--columnWidthXLarge`; gift-card grid 5-up; extra cream margin |
+
+### Touch Targets
+
+- Pill buttons at `7px 16px` padding measure ~32px tall — below 44px WCAG AAA minimum for touch-only surfaces. On mobile, button padding may be visually expanded to meet the minimum.
+- Frap floating circular button at `56px` is well above minimum.
+- Frap uses `--frapTouchOffset: calc(-1 * .8rem)` to extend tap area 8px beyond visual edge.
+- Form float-label inputs grow their label font size on mobile (1.6rem base vs 1.9rem desktop) — easier to tap and read at arm's-length.
+
+### Collapsing Strategy
+
+- **Global nav height scales progressively**: 64 → 72 → 83 → 99px across breakpoints, not a single value
+- **Hero split collapses**: 40/60 asymmetric split → stacked (image top, content below) at mobile
+- **Gift-card grid**: 5-up → 4-up → 3-up → 2-up → 1-up across breakpoints with adjusted card widths
+- **Feature bands**: Stay full-width but text + imagery stack vertically on mobile
+- **Outer gutter scales**: 16px → 24px → 40px as viewport grows
+- **Rewards 3-column status panels**: Stack to single column on mobile
+
+### Image Behavior
+
+- Hero product photography crops tighter vertically on mobile; content becomes the visual anchor
+- Gift-card illustrations preserve aspect ratio; card grid reflows
+- `opacity 0.3s ease-in` fade-in transition on image load (prevents jarring pop-in)
+- Rewards app-in-hand photography scales proportionally; never stretches
+
+## 9. Agent Prompt Guide
+
+### Quick Color Reference
+
+- Primary CTA: "Green Accent (`#00754A`)"
+- Primary CTA text: "White (`#ffffff`)"
+- Brand heading: "Starbucks Green (`#006241`)"
+- Feature band / footer: "House Green (`#1E3932`)"
+- Page canvas: "Neutral Warm (`#f2f0eb`)"
+- Card canvas: "White (`#ffffff`)"
+- Heading text on light: "Text Black (`rgba(0,0,0,0.87)`)"
+- Body text on light: "Text Black Soft (`rgba(0,0,0,0.58)`)"
+- Body text on dark-green: "Text White Soft (`rgba(255,255,255,0.70)`)"
+- Rewards accent: "Gold (`#cba258`)"
+- Rewards text: "Rewards Green (`#33433d`)"
+- Destructive: "Red (`#c82014`)"
+
+### Example Component Prompts
+
+1. "Create a primary Starbucks CTA pill button with Green Accent (`#00754A`) background, white text 'Explore our afternoon menu', SoDoSans font at 16px weight 600 with `-0.01em` letter-spacing, `50px` border-radius (full pill), `7px 16px` padding. Apply `transform: scale(0.95)` as the active state with a `0.2s ease` transition."
+
+2. "Design a content card with White (`#ffffff`) background at `12px` border-radius, layered shadow `0 0 0.5px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.24)`. Pad contents `16–24px` (`--space-3` to `--space-4`). Place on a Neutral Warm (`#f2f0eb`) page canvas with `16px` gap to siblings."
+
+3. "Build the Frap floating circular order button — `56px` diameter, Green Accent (`#00754A`) fill, white shopping-bag icon centered. Layered shadow: `0 0 6px rgba(0,0,0,0.24)` + `0 8px 12px rgba(0,0,0,0.14)`. Fixed position bottom-right with `-0.8rem` touch offset. Active state collapses the ambient shadow to `0 8px 12px rgba(0,0,0,0)` with `scale(0.95)`."
+
+4. "Build a dark-green feature band — full-width section with House Green (`#1E3932`) background. Left column: white SoDoSans h2 at 24px weight 600, followed by a Text White Soft (`rgba(255,255,255,0.70)`) body paragraph and a CTA row with two buttons (White-filled with Green Accent text for primary, Outlined-on-Dark white border for secondary). Right column: product photography. Split ratio 40/60, stacked vertically below `768px`."
+
+5. "Create a Rewards status card — House Green (`#1E3932`) panel with `12px` border-radius, colored gradient top stripe (Bronze/Silver/Gold tier). Title in SoDoSans 24px weight 600 in white. Benefits list as white bullets with `rgba(255,255,255,0.70)` secondary captions. Bottom progression text in Text White Soft. Stack 3 panels in a grid at `lg+`, single column on mobile."
+
+6. "Design a gift-card tile — card radius matches `12px`, fills with an illustrated photograph (hand-drawn watercolor-painted feel) as the entire surface. Subtle drop shadow makes it feel like a physical card on the cream canvas. Group under a category label ('Spring', 'Thank You', 'Birthday') in SoDoSans 24px weight 400 above the grid."
+
+7. "Create a Starbucks product-detail header — House Green (`#1E3932`) band with breadcrumb 'Menu / Refreshers / Pink Energy Drink' in 14/400 white above the product title in SoDoSans 32/700 uppercase white. Product photograph centered below title. Below photo: a 4-up size selector row — each cup-icon button shows a vertical cup silhouette, size name ('Tall' / 'Grande' / 'Venti' / 'Trenta') in 16/700 white, and fluid-ounce in 13/400 Text White Soft. Selected size wraps the cup icon in a `2px solid #00754A` circular ring."
+
+8. "Build a Starbucks customize flow — under the size selector, 3 stacked outlined-rectangle input rows (white bg, `1px solid #d6dbde` border, `4px` radius). Each has a floating label ('Add-ins', 'Milk', 'Add-ins') above the top border in 13/700 Text Black uppercase. Value centered (e.g., 'Ice', 'Coconut'). Right side: chevron-down in Text Black Soft. For the scoop row, embed a numeric stepper (`−` `1` `+` with circular `32px` outlined buttons). Below all three fields: outlined green 'Customize' pill with gold sparkle icon, `50px` radius, `14px 40px` padding. Pair with a Green Accent filled 'Add to Order' pill in the same row."
+
+9. "Design a Starbucks product description band — full-width House Green (`#1E3932`) below product header. Top: a gold-outlined '200★ item' Rewards Cost Pill (`50px` radius, `4px 12px` padding, gold `#cba258` border and text). Below: product description in white 16/400/1.5. Nutritional inline summary in white 14/700 ('140 calories, 25g sugar, 2.5g fat') with info-icon tooltip. Outlined-white-on-green pill button 'Full nutrition &amp; ingredients list'. 32px vertical padding."
+
+10. "Create a Starbucks nutrition facts table — two-column layout inside a White card. Left column: 'Ingredients' header (24/400 Text Black), followed by ingredient list or 'Not available for this item' placeholder paragraph in 14/400 Text Black Soft. Right column: 'Nutrition' header, then label/value rows (nutrient name left, value right) separated by `1px solid #e7e7e7` hairlines. Typography: labels in 14/400 Text Black, values in 14/700 Text Black right-aligned. Footnote asterisk markers in 13/400 Text Black Soft at the bottom."
+
+### Iteration Guide
+
+When refining existing screens generated with this design system:
+1. Focus on ONE component at a time
+2. Reference specific color names and hex codes from this document
+3. Use natural language descriptions ("warm cream canvas," "four-tier green system") alongside exact values
+4. Preserve the 50px pill + `scale(0.95)` active state universally
+5. Check that greens are mapped to their correct role (Green Accent for CTA, Starbucks Green for heading, House Green for band)
+6. Don't introduce gradients — the system is color-block
+7. Keep SoDoSans tracking at `-0.01em` / `-0.16px` across the board
+
+### Known Gaps
+
+- SoDoSans is a proprietary typeface not available on Google Fonts — when implementing publicly, use Inter or Manrope as a substitute and document the swap
+- Lander Tall (Rewards serif) is also custom — substitute with Iowan Old Style, Lora, or Source Serif Pro
+- Specific per-component animation timings beyond the few documented (`--duration: 0.4s`, `--iconTransition: all ease-out 0.2s`, `--expanderDuration: 300ms`) are not captured for every interactive surface
+- Form error-state full styling (red border weight, icon placement) visible on the tint token but not exhaustively extracted
+- Careers-page specific components (cup-name card, search radio grid) are referenced in token names but not covered by this extraction
+- Starbucks Visa Card / Starbucks-Card (SVC) detailed mockup specs are hinted at by `--svcRoundedCorners` and `--svcShadowFilter` tokens but not fully documented
