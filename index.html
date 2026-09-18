@@ -511,10 +511,23 @@
 </div>
 
 <script>
-  // ── Google Apps Script URL ──
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2CCEL-5_-BHuSrVxEzSyQGmoFEfXyPGniQ_spVDmeBmtxoBajTboZuo_xK9ngyHIv7A/exec';
+  // ── 데이터 저장소: Firebase Realtime Database (2026-09-18 Google Apps Script 에서 이전) ──
+  // 점심 앱(ai-study-crew-lunch)과 같은 프로젝트를 쓴다. 구조: study/{weekId}/availability/{wed|thu|fri}/{이름}=true,
+  // study/{weekId}/submitted/{이름}=true, members=[…] (점심 앱과 공유). 규칙은 ai-study-crew-lunch/database.rules.json.
+  // apiKey 등은 공개용 식별자이고, 쓰기 제한은 그 규칙이 맡는다.
+  const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyDd-E-ehLWTKUYKKGJFLm5HqU6i9A2ENus',
+    authDomain: 'ai-study-crew-lunch-aec4d.firebaseapp.com',
+    databaseURL: 'https://ai-study-crew-lunch-aec4d-default-rtdb.asia-southeast1.firebasedatabase.app',
+    projectId: 'ai-study-crew-lunch-aec4d',
+    appId: '1:172008536628:web:a8edb7eb4a82c690c0a861'
+  };
+  const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/12.9.0/';
+  const CACHE_KEY = 'studyCache.v1';
+  const DAY_KEYS = ['wed', 'thu', 'fri'];
 
-  let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱'];
+  let allMembers = ['김근아', '나희진', '이상용', '이예진', '이용성', '조인주', '황성욱', '김동주'];
+  let fb = null;              // { db, ref, set, get, update, onValue } — SDK 로드 후 채워진다
   let selectedMember = null;
   let selectedDates = [];
   let availability = {};
@@ -570,66 +583,115 @@
     }
   }
 
+  // 마지막으로 본 현황을 기기에 남겨 두고, 다음에 열 때 첫 패킷 전에 먼저 그린다.
+  function readCache() {
+    try {
+      const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (c && c.weekId === getCurrentWeekId()) {
+        availability = c.availability || {};
+        submittedMembers = c.submittedMembers || {};
+        if (Array.isArray(c.members) && c.members.length) allMembers = c.members;
+        return true;
+      }
+    } catch (e) { /* 손상된 캐시는 무시 */ }
+    return false;
+  }
+  function writeCache() {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ weekId: getCurrentWeekId(), availability, submittedMembers, members: allMembers }));
+    } catch (e) { /* 저장 공간 부족 등은 무시 */ }
+  }
+
+  // Firebase SDK 를 첫 화면을 그린 뒤에 늦게 불러온다 (첫 표시를 막지 않게). 여러 곳에서 불러도 한 번만 연결.
+  let fbConnecting = null;
+  function connectFirebase() {
+    if (!fbConnecting) fbConnecting = (async () => {
+      const [{ initializeApp }, { getDatabase, ref, set, get, update, onValue }] = await Promise.all([
+        import(FIREBASE_SDK + 'firebase-app.js'),
+        import(FIREBASE_SDK + 'firebase-database.js')
+      ]);
+      const app = initializeApp(FIREBASE_CONFIG);
+      fb = { db: getDatabase(app), ref, set, get, update, onValue };
+    })();
+    return fbConnecting;
+  }
+
+  // RTDB 는 배열을 {0:…,1:…} 객체로 줄 때가 있어 리스트로 정규화한다.
+  function toList(v) {
+    if (Array.isArray(v)) return v.filter(x => typeof x === 'string' && x);
+    if (v && typeof v === 'object') return Object.keys(v).sort((a, b) => a - b).map(k => v[k]).filter(x => typeof x === 'string' && x);
+    return [];
+  }
+
+  // 이번 주 표와 멤버 목록을 실시간 구독한다. 누가 누르면 폴링 없이 바로 반영된다.
+  let subscribedWeekId = null, unsubscribeStudy = null, unsubscribeMembers = null;
+  function subscribeData() {
+    const weekId = getCurrentWeekId();
+    if (unsubscribeStudy) unsubscribeStudy();
+    subscribedWeekId = weekId;
+    unsubscribeStudy = fb.onValue(fb.ref(fb.db, 'study/' + weekId), snap => {
+      const d = snap.val() || {};
+      availability = d.availability || {};
+      submittedMembers = d.submitted || {};
+      writeCache();
+      renderMembers(); renderScheduleTable(); updateBestDate();
+    }, error => console.error('투표 데이터 구독 실패:', error));
+    if (!unsubscribeMembers) {
+      unsubscribeMembers = fb.onValue(fb.ref(fb.db, 'members'), snap => {
+        const m = toList(snap.val());
+        if (m.length > 0) { allMembers = m; writeCache(); renderMembers(); renderModalMembers(); renderScheduleTable(); updateBestDate(); }
+      }, error => console.error('멤버 목록 구독 실패:', error));
+    }
+  }
+
   async function loadData() {
     selectedMember = null;
     selectedDates = [];
+    readCache();
     renderMembers(); renderDates(); renderScheduleTable(); updateBestDate();
     hideLoading();
-
-    const weekId = getCurrentWeekId();
     try {
-      const r = await fetch(SCRIPT_URL + '?action=load&weekId=' + encodeURIComponent(weekId), { cache: 'no-cache' });
-      const data = await r.json();
-      if (data.success) {
-        if (data.members) allMembers = data.members;
-        if (data.availability) availability = data.availability;
-        if (data.submittedMembers) submittedMembers = data.submittedMembers;
-        renderMembers(); renderScheduleTable(); updateBestDate();
+      await connectFirebase();
+      subscribeData();
+    } catch (e) { console.error('Firebase 연결 실패:', e); }
+    // 탭을 오래 열어 둔 채 주가 바뀌면(월요일 0시) 새 주차로 구독을 옮긴다.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && fb && subscribedWeekId !== getCurrentWeekId()) {
+        availability = {}; submittedMembers = {}; renderScheduleTable(); updateBestDate(); subscribeData();
       }
-    } catch (e) { console.error('데이터 로드 실패:', e); }
-
-    setInterval(async () => {
-      try {
-        const r = await fetch(SCRIPT_URL + '?action=load&weekId=' + encodeURIComponent(weekId), { cache: 'no-cache' });
-        const data = await r.json();
-        if (data.success) {
-          if (data.members) allMembers = data.members;
-          if (data.availability) availability = data.availability;
-          if (data.submittedMembers) submittedMembers = data.submittedMembers;
-          renderMembers(); renderScheduleTable(); updateBestDate();
-        }
-      } catch (e) { console.error('자동 새로고침 실패:', e); }
-    }, 10000);
+    });
   }
 
+  // 내 표를 한 번의 멀티패스 업데이트로 저장한다(원자적). 화면 갱신은 onValue 구독이 맡는다(재조회 없음).
   async function saveData() {
     try {
       const weekId = getCurrentWeekId();
-      await fetch(SCRIPT_URL, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'save', weekId,
-          memberName: currentSavingMember,
-          memberDates: currentSavingDates,
-          isUnavailable: currentSavingUnavailable
-        })
-      });
-    } catch (e) { console.error('데이터 저장 실패:', e); }
+      if (!fb) await connectFirebase();
+      const patch = {};
+      DAY_KEYS.forEach(d => { patch['availability/' + d + '/' + currentSavingMember] = currentSavingDates.includes(d) ? true : null; });
+      patch['submitted/' + currentSavingMember] = true;
+      await fb.update(fb.ref(fb.db, 'study/' + weekId), patch);
+    } catch (e) {
+      console.error('데이터 저장 실패:', e);
+      alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
   }
 
+  // 멤버 목록 저장. 삭제된 멤버가 있으면 이번 주 표(availability·submitted)도 같은 업데이트로 지운다.
   async function saveMembersOnly(deletedMember) {
     try {
       const weekId = getCurrentWeekId();
-      await fetch(SCRIPT_URL, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveMembers', weekId,
-          members: allMembers, deletedMember: deletedMember || null
-        })
-      });
-    } catch (e) { console.error('멤버 목록 저장 실패:', e); }
+      if (!fb) await connectFirebase();
+      const patch = { 'members': allMembers.slice() };
+      if (deletedMember) {
+        DAY_KEYS.forEach(d => { patch['study/' + weekId + '/availability/' + d + '/' + deletedMember] = null; });
+        patch['study/' + weekId + '/submitted/' + deletedMember] = null;
+      }
+      await fb.update(fb.ref(fb.db), patch);
+    } catch (e) {
+      console.error('멤버 목록 저장 실패:', e);
+      alert('멤버 목록 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
   }
 
   // ── Modal ──
